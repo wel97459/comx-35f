@@ -57,24 +57,29 @@ class comx35_test extends Component {
         vis69.io.TPB := CPU.io.TPB
         vis69.io.N := CPU.io.N
 
+        vis69.io.Display_ := vis70.io.Display_
+        vis69.io.AddSTB_ := vis70.io.AddSTB_
+        vis69.io.HSync_ := vis70.io.HSync_
+        
         vis70.io.DataIn := CPU.io.DataOut
         vis70.io.MRD := CPU.io.MRD
         vis70.io.TPB := CPU.io.TPB
         vis70.io.N3_ := vis69.io.N3_
         vis70.io.CMSEL := vis69.io.CMSEL
 
-        //Cons
+    //Cons
         CPU.io.Wait_n := io.Start
         CPU.io.Clear_n := io.Start
         CPU.io.DMA_Out_n := True
         CPU.io.DMA_In_n := True
         CPU.io.Interrupt_n := True
-        CPU.io.EF_n := 0xf
-        vis70.io.PalOrNTSC := False 
-    //Signals
-
-
+        vis70.io.PalOrNTSC := False
+        val rtp = True
     //Registers
+        val NTSC_PAL_FlipFlop = RegNextWhen(False, CPU.io.Q, True) init(True)
+
+    //Signals
+        CPU.io.EF_n := True ## True ## (!NTSC_PAL_FlipFlop && rtp) ## (vis70.io.PreDisplay_)
 }
 
 object comx35_sim {

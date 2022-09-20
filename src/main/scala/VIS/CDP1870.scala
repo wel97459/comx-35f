@@ -28,7 +28,7 @@ class CDP1870 extends Component{
     }
 
     //Registers
-        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB, Bits(8 bits)) init(0x80)
+        val CMD_Reg = Reg(Bits(8 bits)) init(0x80)
         val FresHorz = CMD_Reg(7)
         val COLB = CMD_Reg(6 downto 5)
         val DispOff_Next = CMD_Reg(4)
@@ -38,6 +38,8 @@ class CDP1870 extends Component{
         val VerticalCounter = Reg(UInt(9 bits)) init(0)
         val HorizontalCounter = Reg(UInt(6 bits)) init(59)
         val TimingCounter = Reg(UInt(4 bits)) init(0)
+        
+        val DispOff = Reg(Bool()) init(False)
 
     //Signals
         val VSync_NTSC = VerticalCounter >= 258 && VerticalCounter <= 262
@@ -59,19 +61,17 @@ class CDP1870 extends Component{
         val HSync = HorizontalCounter >= 56 && HorizontalCounter <= 59
         val Burst = HorizontalCounter >= 1 && HorizontalCounter <= 4
 
-        val HDisplay = HorizontalCounter >= 10 && HorizontalCounter <= 49
+        val HDisplay = HorizontalCounter >= 10 && HorizontalCounter <= 50
 
         val DotClk6 = TimingCounter === 0 || TimingCounter === 6
         val DotClk12 = TimingCounter === 0
         val DotClk = FresHorz ? DotClk6 | DotClk12
 
-        val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise(), Bool()) init(False)
-
         //Outputs
-        io.HSync_ := True
-        io.Display_ := DispOff ? VDisplay | True
-        io.PreDisplay_ := DispOff ? VPreDisplay | True
-        io.AddSTB_ := (HDisplay && !DispOff && VDisplay) ? DotClk | True
+        io.HSync_ := !DispOff && !HSync 
+        io.Display_ := !DispOff && !VDisplay 
+        io.PreDisplay_ := !DispOff && !VPreDisplay
+        io.AddSTB_ := (HDisplay && !DispOff && VDisplay) ? !DotClk | True
         io.DataOut := 0x00
         io.CPUCLK := TimingCounter(0)
 
@@ -92,5 +92,13 @@ class CDP1870 extends Component{
         }otherwise{
             HorizontalCounter := HorizontalCounter + 1
         }
+    }
+
+    when((VerticalCounter === 0).rise()){
+        DispOff := DispOff_Next
+    }
+
+    when(!io.N3_ && io.TPB){
+        CMD_Reg := io.DataIn
     }
 }

@@ -54,9 +54,10 @@ class CDP1869 extends Component {
     val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && io.TPB, Bits(9 bits))
     val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && io.TPB, Bits(11 bits))
     val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && io.TPB, Bits(8 bits))
-
-    val RCA = Reg(Bits(4 bits)) init(0) //counter for character address
-    val RPA = Reg(Bits(11 bits)) init(0) //counter for page address
+    
+    val RCA = Reg(UInt(5 bits)) init(0) //counter for character address
+    val HMA = Reg(UInt(11 bits)) init(0) //offset counter
+    val RPA = Reg(UInt(11 bits)) init(0) //counter for page address
 
     //Signals
     val FresVert = WN_Reg(7)
@@ -64,6 +65,32 @@ class CDP1869 extends Component {
     val HiRes16Line = WN_Reg(5)
     val NineLine = WN_Reg(3)
     val CmemAccessMode = WN_Reg(0)
- 
 
+    val RCA_NEXT = RCA + 1
+    val HMA_NEXT = HMA + 20
+
+    val RCA_OUTPUT = FresVert ? RCA | RCA |>> 1
+
+    val RCA_15 = RCA < 15 && NineLine && (HiRes16Line || !FresVert)
+    val RCA_7 = RCA < 7 && NineLine
+    val RCA_8 = RCA < 8 && !NineLine
+
+    when(io.Display_){
+        RCA := 0
+        RPA := (HMA_Reg ## B"00").asUInt
+        HMA := (HMA_Reg ## B"00").asUInt
+    }otherwise{
+        when(io.AddSTB_.fall()){
+            RPA := RPA + 1
+        }
+        when(io.HSync_.fall()){
+            when(RCA_15 || RCA_7 || RCA_8){
+                RCA := RCA_NEXT
+                RPA := HMA
+            }otherwise{
+                RCA := 0
+                HMA := HMA_NEXT
+            }
+        }
+    }
 }
