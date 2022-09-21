@@ -38,12 +38,10 @@ class CDP1869 extends Component {
     io.DataOut := 0x00
 
     io.CMWR_ := True
-    io.CMSEL := False
     io.CMA3_PMA10 := False
     io.CMA := 0x0
 
     io.PMWR_ := True
-    io.PMSEL := False
     io.PMA := 0x000
 
     
@@ -74,6 +72,9 @@ class CDP1869 extends Component {
     val RCA_15 = RCA < 15 && NineLine && (HiRes16Line || !FresVert)
     val RCA_7 = RCA < 7 && NineLine
     val RCA_8 = RCA < 8 && !NineLine
+
+    io.PMSEL := (UpperAddr.asUInt >= 0xf8)
+    io.CMSEL := (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7)
 
     when(io.Display_){
         RCA := 0

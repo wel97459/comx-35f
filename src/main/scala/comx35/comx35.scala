@@ -12,11 +12,11 @@ case class Memory(Size: Int) {
     val content = new Array[Int](Size+1);
 
     def write(address: Long, data: Int): Unit = {
-        content(address.toInt & 0xFFFF) = data & 0xff
+        content(address.toInt & Size) = data & 0xff
     }
 
     def read(address: Long): Int = {
-        content(address.toInt & 0xFFFF) & 0xff
+        content(address.toInt & Size) & 0xff
     }
 
     def loadBin(offset: Long, file: String): Unit = {
@@ -34,6 +34,17 @@ class comx35_test extends Component {
        val DataIn = in Bits(8 bit)
        val MRD = out Bool()
        val MWR = out Bool()
+
+       val PMA = out Bits(10 bits)
+       val PMWR_ = out Bool() 
+       val PMD_In = in Bits(8 bit)
+       val PMD_Out = out Bits(8 bit)
+
+       val CMA = out Bits(10 bits)
+       val CMWR_ = out Bool() 
+       val CMD_In = in Bits(8 bit)
+       val CMD_Out = out Bits(8 bit)
+
        val Start = in Bool()
     }
 
@@ -99,7 +110,9 @@ object comx35_sim {
 
             val ram = new Memory(0xBFFF)
             ram.loadBin(0x0000, "data/comx35.1.3.bin")
-
+            
+            val pram = new Memory(0x3FF)
+            val cram = new Memory(0x3FF)
             //val trace = new TraceEmma("verification\\out.log")
 
             var c = 0;
@@ -116,6 +129,17 @@ object comx35_sim {
 
                     if (dut.io.MWR.toBoolean == false && dut.io.Addr16.toInt > 0x3fff && dut.io.Addr16.toInt < 0xC000) {
                         ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
+                    }
+
+                    dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
+                    dut.io.CMD_In #= pram.read(dut.io.CMA.toInt)
+                    
+                    if(dut.io.PMWR_ == False){
+                        ram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
+                    }
+
+                    if(dut.io.CMWR_ == False){
+                        ram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
                     }
 
                     c += 1
