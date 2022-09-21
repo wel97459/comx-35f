@@ -28,11 +28,8 @@ class CDP1870 extends Component{
     }
 
     //Registers
-        //val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB, Bits(8 bits)) init(0x80)
-        val CMD_Reg = Reg(Bits(8 bits)) init(0x88)
-        when(!io.N3_ && io.TPB){
-            CMD_Reg := io.DataIn
-        } 
+        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB, B"8'h00")
+ 
         val FresHorz = CMD_Reg(7)
         val COLB = CMD_Reg(6 downto 5)
         val DispOff_Next = CMD_Reg(4)
@@ -43,10 +40,7 @@ class CDP1870 extends Component{
         val HorizontalCounter = Reg(UInt(6 bits)) init(59)
         val TimingCounter = Reg(UInt(4 bits)) init(0)
         
-        val DispOff = Reg(Bool()) init(True)
-        when((VerticalCounter === 0).rise()){
-            DispOff := DispOff_Next
-        }
+        val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise(), True)
 
     //Signals
         val VSync_NTSC = VerticalCounter >= 258 && VerticalCounter <= 262

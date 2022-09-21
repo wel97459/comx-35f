@@ -72,6 +72,14 @@ class comx35_test extends Component {
         vis69.io.AddSTB_ := vis70.io.AddSTB_
         vis69.io.HSync_ := vis70.io.HSync_
         
+        io.PMA := vis69.io.PMA
+        io.PMWR_ := vis69.io.PMWR_
+        io.PMD_Out := CPU.io.DataOut
+        
+        io.CMA := io.PMD_In ## vis69.io.CMA(1 downto 0)
+        io.CMWR_ := vis69.io.CMWR_
+        io.CMD_Out := CPU.io.DataOut
+
         vis70.io.DataIn := CPU.io.DataOut
         vis70.io.MRD := CPU.io.MRD
         vis70.io.TPB := CPU.io.TPB
@@ -134,12 +142,12 @@ object comx35_sim {
                     dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
                     dut.io.CMD_In #= pram.read(dut.io.CMA.toInt)
                     
-                    if(dut.io.PMWR_ == False){
-                        ram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
+                    if(dut.io.PMWR_ == false){
+                        pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
                     }
 
-                    if(dut.io.CMWR_ == False){
-                        ram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
+                    if(dut.io.CMWR_ == false){
+                        cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
                     }
 
                     c += 1

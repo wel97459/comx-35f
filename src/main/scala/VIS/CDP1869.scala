@@ -46,12 +46,12 @@ class CDP1869 extends Component {
 
     
     //Registers
-    val UpperAddr = RegNextWhen(io.Addr, io.TPA.rise(), Bits(8 bits))
+    val UpperAddr = RegNextWhen(io.Addr, io.TPA.rise(), B"8'h00")
     val Addr16 = UpperAddr ## io.Addr
 
-    val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && io.TPB, Bits(9 bits))
-    val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && io.TPB, Bits(11 bits))
-    val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && io.TPB, Bits(8 bits))
+    val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && io.TPB, B"9'h000")
+    val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && io.TPB, B"11'h000")
+    val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && io.TPB, B"8'h00")
     
     val RCA = Reg(UInt(5 bits)) init(0) //counter for character address
     val HMA = Reg(UInt(11 bits)) init(0) //offset counter
