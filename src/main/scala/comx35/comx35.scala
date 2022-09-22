@@ -46,6 +46,7 @@ class comx35_test extends Component {
        val CMD_Out = out Bits(8 bit)
 
        val Start = in Bool()
+       val Test = in Bool()
     }
 
     //Components
@@ -67,7 +68,9 @@ class comx35_test extends Component {
         vis69.io.TPA := CPU.io.TPA
         vis69.io.TPB := CPU.io.TPB
         vis69.io.N := CPU.io.N
-
+        vis69.io.MWR := CPU.io.MWR
+        vis69.io.MRD := CPU.io.MRD
+        
         vis69.io.Display_ := vis70.io.Display_
         vis69.io.AddSTB_ := vis70.io.AddSTB_
         vis69.io.HSync_ := vis70.io.HSync_
@@ -75,8 +78,8 @@ class comx35_test extends Component {
         io.PMA := vis69.io.PMA
         io.PMWR_ := vis69.io.PMWR_
         io.PMD_Out := CPU.io.DataOut
-        
-        io.CMA := io.PMD_In ## vis69.io.CMA(1 downto 0)
+
+        io.CMA := io.PMD_In(6 downto 0) ## vis69.io.CMA(2 downto 0)
         io.CMWR_ := vis69.io.CMWR_
         io.CMD_Out := CPU.io.DataOut
 
@@ -85,6 +88,8 @@ class comx35_test extends Component {
         vis70.io.TPB := CPU.io.TPB
         vis70.io.N3_ := vis69.io.N3_
         vis70.io.CMSEL := vis69.io.CMSEL
+        vis70.io.CDB_in := io.CMD_In(5 downto 0)
+        vis70.io.CCB_in := io.CMD_In(7 downto 6)
 
     //Cons
         CPU.io.Wait_n := io.Start
@@ -94,6 +99,7 @@ class comx35_test extends Component {
         CPU.io.Interrupt_n := True
         vis70.io.PalOrNTSC := False
         val rtp = True
+        
     //Registers
         val NTSC_PAL_FlipFlop = RegNextWhen(False, CPU.io.Q, True) init(True)
 
@@ -139,16 +145,17 @@ object comx35_sim {
                         ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
                     }
 
-                    dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
-                    dut.io.CMD_In #= pram.read(dut.io.CMA.toInt)
                     
-                    if(dut.io.PMWR_ == false){
+                    if(dut.io.PMWR_.toBoolean == false){
                         pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
                     }
-
-                    if(dut.io.CMWR_ == false){
+                    
+                    if(dut.io.CMWR_.toBoolean == false){
                         cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
                     }
+                    
+                    dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
+                    dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
 
                     c += 1
                     if(c > 999999){

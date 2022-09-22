@@ -25,10 +25,11 @@ class CDP1870 extends Component{
 
         val CMSEL = in Bool() 
         val PalOrNTSC = in Bool()
+        val Pixel = out Bool()
     }
 
     //Registers
-        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB, B"8'h00")
+        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB) init(0x10)
  
         val FresHorz = CMD_Reg(7)
         val COLB = CMD_Reg(6 downto 5)
@@ -40,7 +41,9 @@ class CDP1870 extends Component{
         val HorizontalCounter = Reg(UInt(6 bits)) init(59)
         val TimingCounter = Reg(UInt(4 bits)) init(0)
         
-        val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise(), True)
+        val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise()) init(True)
+
+        val PixelShifter = Reg(Bits(6 bits))
 
     //Signals
         val VSync_NTSC = VerticalCounter >= 258 && VerticalCounter <= 262
@@ -66,13 +69,18 @@ class CDP1870 extends Component{
 
         val DotClk6 = TimingCounter === 0 || TimingCounter === 6
         val DotClk12 = TimingCounter === 0
+
         val DotClk = FresHorz ? DotClk6 | DotClk12
 
+        val PixelClk = FresHorz ? True | !TimingCounter(0)
+        
+        val AddSTB_ = (HDisplay && !DispOff && VDisplay) ? !DotClk | True
         //Outputs
         io.HSync_ := !HSync
         io.Display_ := !DispOff ?  !VDisplay | True
         io.PreDisplay_ := !DispOff ? !VPreDisplay | True
-        io.AddSTB_ := (HDisplay && !DispOff && VDisplay) ? !DotClk | True
+
+        io.AddSTB_ := AddSTB_
         io.DataOut := 0x00
         io.CPUCLK := TimingCounter(0)
 
@@ -94,4 +102,15 @@ class CDP1870 extends Component{
             HorizontalCounter := HorizontalCounter + 1
         }
     }
+
+    when(PixelClk){
+        when(!AddSTB_){
+            PixelShifter := io.CDB_in
+        }otherwise{
+            PixelShifter := PixelShifter |>> 1
+        }
+    }
+
+    //Outputs
+    io.Pixel := PixelShifter(0)
 }
