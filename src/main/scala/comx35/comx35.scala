@@ -166,3 +166,16 @@ object comx35_sim {
         }
     }
 }
+
+//Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be resued everywhere
+object ComxSpinalConfig extends SpinalConfig(
+    targetDirectory = ".",
+    defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
+)
+
+//Generate the MyTopLevel's Verilog using the above custom configuration.
+object ComxGen {
+    def main(args: Array[String]) {
+        ComxSpinalConfig.generateVerilog(new comx35_test).printPruned
+    }
+}
