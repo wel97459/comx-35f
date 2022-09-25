@@ -37,9 +37,9 @@ class CDP1869 extends Component {
     val UpperAddr = RegNextWhen(io.Addr, io.TPA.rise(), B"8'h00")
     val Addr16 = UpperAddr ## io.Addr
 
-    val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && io.TPB) init(0)
-    val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && io.TPB) init(0)
-    val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && io.TPB) init(0)
+    val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && !io.MRD && io.TPB) init(0)
+    val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && !io.MRD && io.TPB) init(0)
+    val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && !io.MRD && io.TPB) init(0)
     
     val RCA = Reg(UInt(5 bits)) init(0) //counter for character address
     val HMA = Reg(UInt(11 bits)) init(0) //offset counter
@@ -53,7 +53,8 @@ class CDP1869 extends Component {
     val CmemAccessMode = WN_Reg(0)
 
     val RCA_NEXT = RCA + 1
-    val HMA_NEXT = HMA + 20
+    val HMA_NEXT_20 = HMA + 20
+    val HMA_NEXT_40 = HMA + 40
 
     val RCA_OUTPUT = FresVert ? RCA | RCA |>> 1
 
@@ -63,8 +64,8 @@ class CDP1869 extends Component {
 
     val RemapRCA = FresVert ? RCA.asBits(2 downto 0) | RCA.asBits(3 downto 1)
 
-    val PMSEL = (UpperAddr.asUInt >= 0xf8)
-    val CMSEL = (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7)
+    val PMSEL = (UpperAddr.asUInt >= 0xf8) && io.Display_
+    val CMSEL = (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7) && io.Display_
 
     when(io.Display_){
         RCA := 0
@@ -80,7 +81,7 @@ class CDP1869 extends Component {
                 RPA := HMA
             }otherwise{
                 RCA := 0
-                HMA := HMA_NEXT
+                HMA := FresVert ? HMA_NEXT_40 | HMA_NEXT_20
             }
         }
     }
@@ -90,11 +91,11 @@ class CDP1869 extends Component {
     io.DataOut := 0x00
 
     io.PMSEL := PMSEL
-    io.PMA := io.Display_ ? ((CmemAccessMode) ? PMA_Reg(9 downto 0) | Addr16(9 downto 0)) | RPA.asBits(9 downto 0)
+    io.PMA := io.Display_ ? ((CmemAccessMode) ? PMA_Reg(9 downto 0) | ((PMSEL) ? Addr16(9 downto 0) | 0x000)) | RPA.asBits(9 downto 0)
     io.PMWR_ := (io.Display_ & PMSEL) ? io.MWR | True
 
     io.CMSEL := CMSEL
     io.CMWR_ := (io.Display_ & CMSEL) ? io.MWR | True
     io.CMA3_PMA10 := False //TODO
-    io.CMA := io.Display_ ? Addr16(2 downto 0) | RemapRCA
+    io.CMA := io.Display_ ? ((CMSEL) ? Addr16(2 downto 0) | 0x0) | RemapRCA
 }

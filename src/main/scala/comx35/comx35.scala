@@ -29,47 +29,61 @@ case class Memory(Size: Int) {
 
 class comx35_test extends Component {
     val io = new Bundle {
-       val Addr16 = out Bits(16 bit)
-       val DataOut = out Bits(8 bit)
-       val DataIn = in Bits(8 bit)
-       val MRD = out Bool()
-       val MWR = out Bool()
+        val Addr16 = out Bits(16 bit)
+        val DataOut = out Bits(8 bit)
+        val DataIn = in Bits(8 bit)
+        val MRD = out Bool()
+        val MWR = out Bool()
 
-       val PMA = out Bits(10 bits)
-       val PMWR_ = out Bool() 
-       val PMD_In = in Bits(8 bit)
-       val PMD_Out = out Bits(8 bit)
+        val PMA = out Bits(10 bits)
+        val PMWR_ = out Bool() 
+        val PMD_In = in Bits(8 bit)
+        val PMD_Out = out Bits(8 bit)
 
-       val CMA = out Bits(10 bits)
-       val CMWR_ = out Bool() 
-       val CMD_In = in Bits(8 bit)
-       val CMD_Out = out Bits(8 bit)
+        val CMA = out Bits(10 bits)
+        val CMWR_ = out Bool() 
+        val CMD_In = in Bits(8 bit)
+        val CMD_Out = out Bits(8 bit)
 
-       val Start = in Bool()
-       val Test = in Bool()
+        val Start = in Bool()
+        
+        val HSync_ = out Bool()
+        val Display_ = out Bool()
+        val Color = out Bits(3 bits)
+        val Pixel = out Bool()
+
+        val KBD_Latch = in Bool()
+        val KBD_KeyCode = in Bits(8 bits)
+        val KBD_Ready = out Bool()
     }
 
     //Components
-    val CPU = new Spinal1802.Spinal1802()
     val vis69 = new VIS.CDP1869()
     val vis70 = new VIS.CDP1870()
+    val kbd71 = new VIS.CDP1871()
+    val clockedArea = new ClockEnableArea(vis70.io.CPUCLK) {
+        val CPU = new Spinal1802.Spinal1802()
+    }
 
-    //Inputs
-        CPU.io.DataIn := io.DataIn
+    //Cons
+        clockedArea.CPU.io.DMA_Out_n := True
+        clockedArea.CPU.io.DMA_In_n := True
+        vis70.io.PalOrNTSC := False
+        
+    //Registers
+        val NTSC_PAL_FlipFlop = RegNextWhen(False, clockedArea.CPU.io.Q, True) init(True)
+        val INT_FF = Reg(Bool()) init(True)
 
-    //Outputs
-        io.DataOut := CPU.io.DataOut
-        io.Addr16 := CPU.io.Addr16
-        io.MRD := CPU.io.MRD
-        io.MWR := CPU.io.MWR
+    //Signals
+        val DataInSel = kbd71.io.KBD_SEL ## vis69.io.CMSEL ## vis69.io.PMSEL
 
     //Interconnects   
-        vis69.io.Addr := CPU.io.Addr
-        vis69.io.TPA := CPU.io.TPA
-        vis69.io.TPB := CPU.io.TPB
-        vis69.io.N := CPU.io.N
-        vis69.io.MWR := CPU.io.MWR
-        vis69.io.MRD := CPU.io.MRD
+        vis69.io.Addr := clockedArea.CPU.io.Addr
+        vis69.io.TPA := clockedArea.CPU.io.TPA
+        vis69.io.TPB := clockedArea.CPU.io.TPB
+        vis69.io.N := clockedArea.CPU.io.N
+        vis69.io.MWR := clockedArea.CPU.io.MWR
+        vis69.io.MRD := clockedArea.CPU.io.MRD
         
         vis69.io.Display_ := vis70.io.Display_
         vis69.io.AddSTB_ := vis70.io.AddSTB_
@@ -77,34 +91,58 @@ class comx35_test extends Component {
         
         io.PMA := vis69.io.PMA
         io.PMWR_ := vis69.io.PMWR_
-        io.PMD_Out := CPU.io.DataOut
+        io.PMD_Out := clockedArea.CPU.io.DataOut
 
         io.CMA := io.PMD_In(6 downto 0) ## vis69.io.CMA(2 downto 0)
         io.CMWR_ := vis69.io.CMWR_
-        io.CMD_Out := CPU.io.DataOut
+        io.CMD_Out := clockedArea.CPU.io.DataOut
 
-        vis70.io.DataIn := CPU.io.DataOut
-        vis70.io.MRD := CPU.io.MRD
-        vis70.io.TPB := CPU.io.TPB
+        vis70.io.DataIn := clockedArea.CPU.io.DataOut
+        vis70.io.MRD := clockedArea.CPU.io.MRD
+        vis70.io.TPB := clockedArea.CPU.io.TPB
         vis70.io.N3_ := vis69.io.N3_
         vis70.io.CMSEL := vis69.io.CMSEL
         vis70.io.CDB_in := io.CMD_In(5 downto 0)
-        vis70.io.CCB_in := io.CMD_In(7 downto 6)
+        vis70.io.CCB_in := io.PMD_In(7) ## io.CMD_In(7 downto 6)
 
-    //Cons
-        CPU.io.Wait_n := io.Start
-        CPU.io.Clear_n := io.Start
-        CPU.io.DMA_Out_n := True
-        CPU.io.DMA_In_n := True
-        CPU.io.Interrupt_n := True
-        vis70.io.PalOrNTSC := False
-        val rtp = True
-        
-    //Registers
-        val NTSC_PAL_FlipFlop = RegNextWhen(False, CPU.io.Q, True) init(True)
+        kbd71.io.TPB := clockedArea.CPU.io.TPB
+        kbd71.io.MRD_ := clockedArea.CPU.io.MRD
+        kbd71.io.N3_ := vis69.io.N3_
 
-    //Signals
-        CPU.io.EF_n := True ## True ## (!NTSC_PAL_FlipFlop && rtp) ## (vis70.io.PreDisplay_)
+        clockedArea.CPU.io.Wait_n := io.Start
+        clockedArea.CPU.io.Clear_n := io.Start
+        clockedArea.CPU.io.EF_n := True ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
+        clockedArea.CPU.io.Interrupt_n := INT_FF
+    //Latches
+        when(vis70.io.PreDisplay_.rise()){
+            INT_FF := NTSC_PAL_FlipFlop
+        }elsewhen((clockedArea.CPU.io.SC === 3 && clockedArea.CPU.io.TPA) && (!NTSC_PAL_FlipFlop)){
+            INT_FF := True
+        }
+
+    //Inputs
+        clockedArea.CPU.io.DataIn := DataInSel.mux( 
+            1 -> (io.PMD_In),
+            2 -> (io.CMD_In),
+            4 -> (kbd71.io.DataOut),
+            default -> (io.DataIn)
+        )
+
+        kbd71.io.KeyCode := io.KBD_KeyCode
+        kbd71.io.Latch := io.KBD_Latch
+
+    //Outputs
+        io.DataOut := clockedArea.CPU.io.DataOut
+        io.Addr16 := clockedArea.CPU.io.Addr16
+        io.MRD := clockedArea.CPU.io.MRD
+        io.MWR := clockedArea.CPU.io.MWR
+
+        io.HSync_ := vis70.io.HSync_
+        io.Display_ := vis70.io.Display_
+        io.Pixel := vis70.io.Pixel
+        io.Color := vis70.io.Color
+
+        io.KBD_Ready := kbd71.io.Ready
 }
 
 object comx35_sim {
@@ -157,6 +195,14 @@ object comx35_sim {
                     dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
                     dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
 
+                    if(c == 5000){
+                        dut.io.KBD_KeyCode #= 0x80
+                        dut.io.KBD_Latch #= true
+                    }else{
+                        dut.io.KBD_KeyCode #= 0x00
+                        dut.io.KBD_Latch #= false
+                    }
+
                     c += 1
                     if(c > 999999){
                         loop.break;
@@ -170,6 +216,7 @@ object comx35_sim {
 //Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be resued everywhere
 object ComxSpinalConfig extends SpinalConfig(
     targetDirectory = ".",
+    oneFilePerComponent = true,
     defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
 )
 

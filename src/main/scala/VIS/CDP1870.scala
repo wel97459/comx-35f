@@ -13,8 +13,8 @@ class CDP1870 extends Component{
         val CDB_in = in Bits(6 bits)
         val CDB_out = in Bits(6 bits)
 
-        val CCB_in = in Bits(2 bits)
-        val CCB_out = in Bits(2 bits)
+        val CCB_in = in Bits(3 bits)
+        val CCB_out = in Bits(3 bits)
 
         val DataIn = in Bits(8 bit)
         val DataOut = out Bits(8 bit)
@@ -25,14 +25,16 @@ class CDP1870 extends Component{
 
         val CMSEL = in Bool() 
         val PalOrNTSC = in Bool()
+        val CompSync_ = out Bool()
         val Pixel = out Bool()
+        val Color = out Bits(3 bits)
     }
 
     //Registers
-        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && io.TPB) init(0x10)
+        val CMD_Reg = RegNextWhen(io.DataIn, !io.N3_ && !io.MRD && io.TPB) init(0x10)
  
         val FresHorz = CMD_Reg(7)
-        val COLB = CMD_Reg(6 downto 5)
+        val COLB = CMD_Reg(6 downto 5).asUInt
         val DispOff_Next = CMD_Reg(4)
         val CFC = CMD_Reg(3)
         val BKG = CMD_Reg(2 downto 0)
@@ -44,6 +46,7 @@ class CDP1870 extends Component{
         val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise()) init(True)
 
         val PixelShifter = Reg(Bits(6 bits))
+        val Color = Reg(Bits(3 bits))
 
     //Signals
         val VSync_NTSC = VerticalCounter >= 258 && VerticalCounter <= 262
@@ -65,7 +68,7 @@ class CDP1870 extends Component{
         val HSync = HorizontalCounter >= 56 && HorizontalCounter <= 59
         val Burst = HorizontalCounter >= 1 && HorizontalCounter <= 4
 
-        val HDisplay = HorizontalCounter >= 10 && HorizontalCounter <= 50
+        val HDisplay = HorizontalCounter >= 10 && HorizontalCounter < 50
 
         val DotClk6 = TimingCounter === 0 || TimingCounter === 6
         val DotClk12 = TimingCounter === 0
@@ -75,42 +78,54 @@ class CDP1870 extends Component{
         val PixelClk = FresHorz ? True | !TimingCounter(0)
         
         val AddSTB_ = (HDisplay && !DispOff && VDisplay) ? !DotClk | True
-        //Outputs
-        io.HSync_ := !HSync
-        io.Display_ := !DispOff ?  !VDisplay | True
-        io.PreDisplay_ := !DispOff ? !VPreDisplay | True
 
-        io.AddSTB_ := AddSTB_
-        io.DataOut := 0x00
-        io.CPUCLK := TimingCounter(0)
+        val ColorOut = COLB.mux(
+            0 -> (Color(0) ## Color(1) ## Color(2)),
+            1 -> (Color(0) ## Color(2) ## Color(1)),
+            2 -> (Color(2) ## Color(0) ## Color(1)),
+            3 -> (Color(2) ## Color(0) ## Color(1))
+        )
 
-    when(TimingCounter === 11){
-        TimingCounter := 0
-    }otherwise{
-        TimingCounter := TimingCounter + 1
-    }
+    //Latches
 
-    when(DotClk6){
-        when(HorizontalCounter === 59){
-            HorizontalCounter := 0
-            when(VReset){
-                VerticalCounter := 0
+        when(TimingCounter === 11){
+            TimingCounter := 0
+        }otherwise{
+            TimingCounter := TimingCounter + 1
+        }
+
+        when(DotClk6){
+            when(HorizontalCounter === 59){
+                HorizontalCounter := 0
+                when(VReset){
+                    VerticalCounter := 0
+                }otherwise{
+                    VerticalCounter := VerticalCounter + 1
+                }
             }otherwise{
-                VerticalCounter := VerticalCounter + 1
+                HorizontalCounter := HorizontalCounter + 1
             }
-        }otherwise{
-            HorizontalCounter := HorizontalCounter + 1
         }
-    }
 
-    when(PixelClk){
-        when(!AddSTB_){
-            PixelShifter := io.CDB_in
-        }otherwise{
-            PixelShifter := PixelShifter |>> 1
+        when(PixelClk){
+            when(!AddSTB_){
+                PixelShifter := io.CDB_in
+                Color := io.CCB_in
+            }otherwise{
+                PixelShifter := PixelShifter |<< 1
+            }
         }
-    }
 
     //Outputs
-    io.Pixel := PixelShifter(0)
+    io.Pixel := PixelShifter(5)
+    io.Color := PixelShifter(5) ? ColorOut | BKG
+
+    io.CompSync_ := !(HSync ^ VSync)
+    io.HSync_ := !HSync
+    io.Display_ := !DispOff ?  !VDisplay | True
+    io.PreDisplay_ := !DispOff ? !VPreDisplay | True
+
+    io.AddSTB_ := AddSTB_
+    io.DataOut := 0x00
+    io.CPUCLK := TimingCounter(0)
 }
