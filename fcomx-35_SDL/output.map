@@ -1,0 +1,685 @@
+
+Merging program properties
+
+
+As-needed library included to satisfy reference by file (symbol)
+
+libdt_lib.so                  CMakeFiles/sim.dir/sim.cpp.o (Vcomx35_test::~Vcomx35_test())
+libSDL2_ttf-2.0.so.0          CMakeFiles/sim.dir/main.cpp.o (TTF_Init)
+libSDL2-2.0.so.0              CMakeFiles/sim.dir/main.cpp.o (SDL_FreeSurface)
+libstdc++.so.6                CMakeFiles/sim.dir/sim.cpp.o (__cxa_guard_acquire@@CXXABI_1.3)
+libgcc_s.so.1                 CMakeFiles/sim.dir/sim.cpp.o (_Unwind_Resume@@GCC_3.0)
+libc.so.6                     CMakeFiles/sim.dir/main.cpp.o (__printf_chk@@GLIBC_2.3.4)
+
+Discarded input sections
+
+ .note.GNU-stack
+                0x0000000000000000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .note.gnu.property
+                0x0000000000000000       0x20 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ .note.gnu.property
+                0x0000000000000000       0x20 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 CMakeFiles/sim.dir/main.cpp.o
+ .note.gnu.property
+                0x0000000000000000       0x20 CMakeFiles/sim.dir/main.cpp.o
+ .group         0x0000000000000000        0x8 CMakeFiles/sim.dir/sim.cpp.o
+ .group         0x0000000000000000        0x8 CMakeFiles/sim.dir/sim.cpp.o
+ .group         0x0000000000000000        0xc CMakeFiles/sim.dir/sim.cpp.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 CMakeFiles/sim.dir/sim.cpp.o
+ .note.gnu.property
+                0x0000000000000000       0x20 CMakeFiles/sim.dir/sim.cpp.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ .note.gnu.property
+                0x0000000000000000       0x20 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ .note.gnu.property
+                0x0000000000000000       0x20 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+LOAD CMakeFiles/sim.dir/main.cpp.o
+LOAD CMakeFiles/sim.dir/sim.cpp.o
+LOAD libdt_lib.so
+LOAD /usr/lib/x86_64-linux-gnu/libSDL2_ttf.so
+LOAD /usr/lib/x86_64-linux-gnu/libSDL2.so
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libstdc++.so
+LOAD /usr/lib/x86_64-linux-gnu/libm.so
+START GROUP
+LOAD /lib/x86_64-linux-gnu/libm.so.6
+LOAD /lib/x86_64-linux-gnu/libmvec.so.1
+END GROUP
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc_s.so
+START GROUP
+LOAD /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc.a
+END GROUP
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc.a
+LOAD /usr/lib/x86_64-linux-gnu/libc.so
+START GROUP
+LOAD /lib/x86_64-linux-gnu/libc.so.6
+LOAD /usr/lib/x86_64-linux-gnu/libc_nonshared.a
+LOAD /lib64/ld-linux-x86-64.so.2
+END GROUP
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc_s.so
+START GROUP
+LOAD /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc.a
+END GROUP
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/libgcc.a
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+LOAD /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+                [!provide]                        PROVIDE (__executable_start = SEGMENT_START ("text-segment", 0x0))
+                0x0000000000000318                . = (SEGMENT_START ("text-segment", 0x0) + SIZEOF_HEADERS)
+
+.interp         0x0000000000000318       0x1c
+ *(.interp)
+ .interp        0x0000000000000318       0x1c /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.note.gnu.property
+                0x0000000000000338       0x30
+ .note.gnu.property
+                0x0000000000000338       0x30 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.note.gnu.build-id
+                0x0000000000000368       0x24
+ *(.note.gnu.build-id)
+ .note.gnu.build-id
+                0x0000000000000368       0x24 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.note.ABI-tag   0x000000000000038c       0x20
+ .note.ABI-tag  0x000000000000038c       0x20 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.hash
+ *(.hash)
+
+.gnu.hash       0x00000000000003b0       0x40
+ *(.gnu.hash)
+ .gnu.hash      0x00000000000003b0       0x40 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.dynsym         0x00000000000003f0      0x600
+ *(.dynsym)
+ .dynsym        0x00000000000003f0      0x600 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.dynstr         0x00000000000009f0      0x58a
+ *(.dynstr)
+ .dynstr        0x00000000000009f0      0x58a /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.gnu.version    0x0000000000000f7a       0x80
+ *(.gnu.version)
+ .gnu.version   0x0000000000000f7a       0x80 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.gnu.version_d  0x0000000000001000        0x0
+ *(.gnu.version_d)
+ .gnu.version_d
+                0x0000000000001000        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.gnu.version_r  0x0000000000001000       0xa0
+ *(.gnu.version_r)
+ .gnu.version_r
+                0x0000000000001000       0xa0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.rela.dyn       0x00000000000010a0      0x198
+ *(.rela.init)
+ *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
+ .rela.text     0x00000000000010a0        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.rela.fini)
+ *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
+ *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
+ .rela.data.rel.ro
+                0x00000000000010a0        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .rela.data.rel.local
+                0x00000000000010a0       0x30 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .rela.data.rel.local.DW.ref.__gxx_personality_v0
+                0x00000000000010d0       0x18 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+ *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*)
+ *(.rela.ctors)
+ *(.rela.dtors)
+ *(.rela.got)
+ .rela.got      0x00000000000010e8       0xa8 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
+ .rela.bss      0x0000000000001190       0x48 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.rela.ldata .rela.ldata.* .rela.gnu.linkonce.l.*)
+ *(.rela.lbss .rela.lbss.* .rela.gnu.linkonce.lb.*)
+ *(.rela.lrodata .rela.lrodata.* .rela.gnu.linkonce.lr.*)
+ *(.rela.ifunc)
+ .rela.ifunc    0x00000000000011d8        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .rela.fini_array
+                0x00000000000011d8       0x18 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .rela.init_array
+                0x00000000000011f0       0x48 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .rela.eh_frame
+                0x0000000000001238        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.rela.plt       0x0000000000001238      0x498
+ *(.rela.plt)
+ .rela.plt      0x0000000000001238      0x498 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.rela.iplt)
+
+.relr.dyn
+ *(.relr.dyn)
+                0x0000000000002000                . = ALIGN (CONSTANT (MAXPAGESIZE))
+
+.init           0x0000000000002000       0x1b
+ *(SORT_NONE(.init))
+ .init          0x0000000000002000       0x16 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+                0x0000000000002000                _init
+ .init          0x0000000000002016        0x5 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+
+.plt            0x0000000000002020      0x320
+ *(.plt)
+ .plt           0x0000000000002020      0x320 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.iplt)
+
+.plt.got        0x0000000000002340       0x10
+ *(.plt.got)
+ .plt.got       0x0000000000002340       0x10 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000002340                __cxa_finalize@@GLIBC_2.2.5
+
+.plt.sec        0x0000000000002350      0x310
+ *(.plt.sec)
+ .plt.sec       0x0000000000002350      0x310 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000002350                Vcomx35_test::trace(VerilatedVcdC*, int, int)
+                0x0000000000002360                Vcomx35_test::eval_step()
+                0x0000000000002370                SDL_RenderCopy
+                0x0000000000002380                SDL_UpdateTexture
+                0x0000000000002390                Vcomx35_test::Vcomx35_test(VerilatedContext*, char const*)
+                0x00000000000023a0                operator new(unsigned long)@@GLIBCXX_3.4
+                0x00000000000023b0                __fprintf_chk@@GLIBC_2.3.4
+                0x00000000000023c0                ftell@@GLIBC_2.2.5
+                0x00000000000023d0                __stack_chk_fail@@GLIBC_2.4
+                0x00000000000023e0                TTF_OpenFont
+                0x00000000000023f0                SDL_Quit
+                0x0000000000002400                SDL_FreeSurface
+                0x0000000000002410                __cxa_guard_acquire@@CXXABI_1.3
+                0x0000000000002420                SDL_CreateTexture
+                0x0000000000002430                VerilatedVcd::open(char const*)
+                0x0000000000002440                SDL_CreateRenderer
+                0x0000000000002450                VerilatedVcd::close()
+                0x0000000000002460                SDL_CreateWindow
+                0x0000000000002470                __cxa_guard_abort@@CXXABI_1.3
+                0x0000000000002480                fclose@@GLIBC_2.2.5
+                0x0000000000002490                SDL_RWFromFile
+                0x00000000000024a0                operator new[](unsigned long)@@GLIBCXX_3.4
+                0x00000000000024b0                Vcomx35_test::final()
+                0x00000000000024c0                VerilatedTrace<VerilatedVcd>::dump(unsigned long)
+                0x00000000000024d0                fread@@GLIBC_2.2.5
+                0x00000000000024e0                operator delete(void*)@@GLIBCXX_3.4
+                0x00000000000024f0                __cxa_guard_release@@CXXABI_1.3
+                0x0000000000002500                _Unwind_Resume@@GCC_3.0
+                0x0000000000002510                SDL_RenderClear
+                0x0000000000002520                VerilatedVcd::VerilatedVcd(VerilatedVcdFile*)
+                0x0000000000002530                SDL_GetWindowPixelFormat
+                0x0000000000002540                SDL_CreateRGBSurface
+                0x0000000000002550                VerilatedContext::VerilatedContext()
+                0x0000000000002560                __cxa_atexit@@GLIBC_2.2.5
+                0x0000000000002570                SDL_SetRenderDrawColor
+                0x0000000000002580                SDL_SaveBMP_RW
+                0x0000000000002590                puts@@GLIBC_2.2.5
+                0x00000000000025a0                __printf_chk@@GLIBC_2.3.4
+                0x00000000000025b0                SDL_RenderPresent
+                0x00000000000025c0                SDL_GetError
+                0x00000000000025d0                TTF_Init
+                0x00000000000025e0                SDL_PollEvent
+                0x00000000000025f0                fseek@@GLIBC_2.2.5
+                0x0000000000002600                VerilatedContext::calcUnusedSigs(bool)
+                0x0000000000002610                __sprintf_chk@@GLIBC_2.3.4
+                0x0000000000002620                fopen@@GLIBC_2.2.5
+                0x0000000000002630                SDL_GetKeyboardState
+                0x0000000000002640                SDL_Init
+                0x0000000000002650                SDL_RenderReadPixels
+
+.text           0x0000000000002660      0xe40
+ *(.text.unlikely .text.*_unlikely .text.unlikely.*)
+ .text.unlikely
+                0x0000000000002660       0x20 CMakeFiles/sim.dir/sim.cpp.o
+ *(.text.exit .text.exit.*)
+ *(.text.startup .text.startup.*)
+ .text.startup  0x0000000000002680      0x11e CMakeFiles/sim.dir/main.cpp.o
+                0x0000000000002680                main
+ *fill*         0x000000000000279e        0x2 
+ .text.startup  0x00000000000027a0       0x34 CMakeFiles/sim.dir/sim.cpp.o
+ *(.text.hot .text.hot.*)
+ *(SORT_BY_NAME(.text.sorted.*))
+ *(.text .stub .text.* .gnu.linkonce.t.*)
+ *fill*         0x00000000000027d4        0xc 
+ .text          0x00000000000027e0       0x26 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x00000000000027e0                _start
+ .text          0x0000000000002806        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+ *fill*         0x0000000000002806        0xa 
+ .text          0x0000000000002810       0xb9 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ *fill*         0x00000000000028c9        0x7 
+ .text          0x00000000000028d0      0x325 CMakeFiles/sim.dir/main.cpp.o
+                0x00000000000028d0                draw()
+                0x0000000000002940                screenshot(char const*)
+                0x00000000000029e0                handleInput()
+                0x0000000000002a70                initVideo()
+ *fill*         0x0000000000002bf5        0xb 
+ .text          0x0000000000002c00      0x8a0 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000002c00                ComxKeyboard(char)
+                0x0000000000002d90                loadFile(char const*, unsigned char*, unsigned int)
+                0x0000000000002e40                sim_init(unsigned int*, SDL_Texture*, void (*)())
+                0x0000000000002fa0                sim_keyevent(unsigned char const*)
+                0x0000000000002fb0                sim_run()
+                0x0000000000003470                sim_end()
+ .text          0x00000000000034a0        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ .text          0x00000000000034a0        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+ *(.gnu.warning)
+
+.fini           0x00000000000034a0        0xd
+ *(SORT_NONE(.fini))
+ .fini          0x00000000000034a0        0x8 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+                0x00000000000034a0                _fini
+ .fini          0x00000000000034a8        0x5 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+                [!provide]                        PROVIDE (__etext = .)
+                [!provide]                        PROVIDE (_etext = .)
+                [!provide]                        PROVIDE (etext = .)
+                0x0000000000004000                . = ALIGN (CONSTANT (MAXPAGESIZE))
+                0x0000000000004000                . = SEGMENT_START ("rodata-segment", (ALIGN (CONSTANT (MAXPAGESIZE)) + (. & (CONSTANT (MAXPAGESIZE) - 0x1))))
+
+.rodata         0x0000000000004000      0x26b
+ *(.rodata .rodata.* .gnu.linkonce.r.*)
+ .rodata.cst4   0x0000000000004000        0x4 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000004000                _IO_stdin_used
+ .rodata.str1.1
+                0x0000000000004004       0xaa CMakeFiles/sim.dir/main.cpp.o
+ *fill*         0x00000000000040ae        0x2 
+ .rodata        0x00000000000040b0      0x14c CMakeFiles/sim.dir/sim.cpp.o
+ .rodata.str1.1
+                0x00000000000041fc       0x6f CMakeFiles/sim.dir/sim.cpp.o
+
+.rodata1
+ *(.rodata1)
+
+.eh_frame_hdr   0x000000000000426c       0x9c
+ *(.eh_frame_hdr)
+ .eh_frame_hdr  0x000000000000426c       0x9c /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x000000000000426c                __GNU_EH_FRAME_HDR
+ *(.eh_frame_entry .eh_frame_entry.*)
+
+.eh_frame       0x0000000000004308      0x2d0
+ *(.eh_frame)
+ .eh_frame      0x0000000000004308       0x30 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                                         0x2c (size before relaxing)
+ *fill*         0x0000000000004338        0x0 
+ .eh_frame      0x0000000000004338       0x28 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                                         0x40 (size before relaxing)
+ .eh_frame      0x0000000000004360       0x18 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                                         0x30 (size before relaxing)
+ .eh_frame      0x0000000000004378       0x18 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                                         0x30 (size before relaxing)
+ .eh_frame      0x0000000000004390      0x118 CMakeFiles/sim.dir/main.cpp.o
+                                        0x130 (size before relaxing)
+ .eh_frame      0x00000000000044a8      0x12c CMakeFiles/sim.dir/sim.cpp.o
+                                        0x148 (size before relaxing)
+ .eh_frame      0x00000000000045d4        0x4 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ *(.eh_frame.*)
+
+.gcc_except_table
+                0x00000000000045d8       0x21
+ *(.gcc_except_table .gcc_except_table.*)
+ .gcc_except_table
+                0x00000000000045d8       0x21 CMakeFiles/sim.dir/sim.cpp.o
+
+.gnu_extab
+ *(.gnu_extab*)
+
+.exception_ranges
+ *(.exception_ranges*)
+                0x0000000000005bb8                . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE))
+
+.eh_frame
+ *(.eh_frame)
+ *(.eh_frame.*)
+
+.gnu_extab
+ *(.gnu_extab)
+
+.gcc_except_table
+ *(.gcc_except_table .gcc_except_table.*)
+
+.exception_ranges
+ *(.exception_ranges*)
+
+.tdata          0x0000000000005bb8        0x0
+                [!provide]                        PROVIDE (__tdata_start = .)
+ *(.tdata .tdata.* .gnu.linkonce.td.*)
+
+.tbss
+ *(.tbss .tbss.* .gnu.linkonce.tb.*)
+ *(.tcommon)
+
+.preinit_array  0x0000000000005bb8        0x0
+                [!provide]                        PROVIDE (__preinit_array_start = .)
+ *(.preinit_array)
+                [!provide]                        PROVIDE (__preinit_array_end = .)
+
+.init_array     0x0000000000005bb8       0x18
+                [!provide]                        PROVIDE (__init_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*))
+ *(.init_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .ctors)
+ .init_array    0x0000000000005bb8        0x8 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ .init_array    0x0000000000005bc0        0x8 CMakeFiles/sim.dir/main.cpp.o
+ .init_array    0x0000000000005bc8        0x8 CMakeFiles/sim.dir/sim.cpp.o
+                [!provide]                        PROVIDE (__init_array_end = .)
+
+.fini_array     0x0000000000005bd0        0x8
+                [!provide]                        PROVIDE (__fini_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*))
+ *(.fini_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .dtors)
+ .fini_array    0x0000000000005bd0        0x8 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+                [!provide]                        PROVIDE (__fini_array_end = .)
+
+.ctors
+ *crtbegin.o(.ctors)
+ *crtbegin?.o(.ctors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
+ *(SORT_BY_NAME(.ctors.*))
+ *(.ctors)
+
+.dtors
+ *crtbegin.o(.dtors)
+ *crtbegin?.o(.dtors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
+ *(SORT_BY_NAME(.dtors.*))
+ *(.dtors)
+
+.jcr
+ *(.jcr)
+
+.data.rel.ro    0x0000000000005bd8        0x0
+ *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*)
+ *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*)
+ .data.rel.ro   0x0000000000005bd8        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+
+.dynamic        0x0000000000005bd8      0x250
+ *(.dynamic)
+ .dynamic       0x0000000000005bd8      0x250 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000005bd8                _DYNAMIC
+
+.got            0x0000000000005e28      0x1d8
+ *(.got.plt)
+ .got.plt       0x0000000000005e28      0x1a0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000005e28                _GLOBAL_OFFSET_TABLE_
+ *(.igot.plt)
+ *(.got)
+ .got           0x0000000000005fc8       0x38 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ *(.igot)
+                0x0000000000006000                . = DATA_SEGMENT_RELRO_END (., 0x0)
+
+.data           0x0000000000006000       0x88
+ *(.data .data.* .gnu.linkonce.d.*)
+ .data          0x0000000000006000        0x4 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x0000000000006000                __data_start
+                0x0000000000006000                data_start
+ .data          0x0000000000006004        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+ .data          0x0000000000006004        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ *fill*         0x0000000000006004        0x4 
+ .data.rel.local
+                0x0000000000006008        0x8 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+                0x0000000000006008                __dso_handle
+ .data          0x0000000000006010        0x0 CMakeFiles/sim.dir/main.cpp.o
+ *fill*         0x0000000000006010       0x10 
+ .data          0x0000000000006020       0x56 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000006020                colors
+                0x0000000000006040                basicStr
+ *fill*         0x0000000000006076        0x2 
+ .data.rel.local
+                0x0000000000006078        0x8 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000006078                keyInput
+ .data.rel.local.DW.ref.__gxx_personality_v0
+                0x0000000000006080        0x8 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000006080                DW.ref.__gxx_personality_v0
+ .data          0x0000000000006088        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ .data          0x0000000000006088        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+
+.tm_clone_table
+                0x0000000000006088        0x0
+ .tm_clone_table
+                0x0000000000006088        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ .tm_clone_table
+                0x0000000000006088        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+
+.data1
+ *(.data1)
+                0x0000000000006088                _edata = .
+                [!provide]                        PROVIDE (edata = .)
+                0x0000000000006088                . = .
+                0x0000000000006088                __bss_start = .
+
+.bss            0x00000000000060c0     0xcbf8
+ *(.dynbss)
+ .dynbss        0x00000000000060c0       0x48 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+                0x00000000000060c0                Verilated::s_lastContextp
+                0x00000000000060e0                Verilated::t_s
+                0x0000000000006100                stderr@@GLIBC_2.2.5
+ *(.bss .bss.* .gnu.linkonce.b.*)
+ .bss           0x0000000000006108        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/Scrt1.o
+ .bss           0x0000000000006108        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o
+ .bss           0x0000000000006108        0x1 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+ *fill*         0x0000000000006109        0x7 
+ .bss           0x0000000000006110       0x40 CMakeFiles/sim.dir/main.cpp.o
+                0x0000000000006110                pixels
+                0x0000000000006120                texDisplayDest
+                0x0000000000006130                texDisplay
+                0x0000000000006138                font
+                0x0000000000006140                window
+                0x0000000000006148                renderer
+ *fill*         0x0000000000006150       0x30 
+ .bss           0x0000000000006180     0xc9e0 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000006180                tmpstr
+                0x00000000000061c0                FrameCurent
+                0x00000000000061c2                FrameCount
+                0x00000000000061c4                scanX
+                0x00000000000061c6                drawY
+                0x00000000000061c8                drawX
+                0x00000000000061ca                Ready_Edge
+                0x00000000000061cb                HSync_Edge
+                0x00000000000061cc                Display_Edge
+                0x00000000000061e0                cram
+                0x00000000000065e0                pram
+                0x00000000000069e0                ram
+                0x000000000000e9e0                rom
+                0x00000000000129e0                trace
+                0x00000000000129e8                main_trace
+                0x00000000000129f0                main_time
+                0x0000000000012a00                comx
+                0x0000000000012b40                m_trace
+                0x0000000000012b48                screen
+                0x0000000000012b50                screenPixels
+                0x0000000000012b58                sim_draw
+ .bss._ZGVZN9Verilated15defaultContextpEvE3s_s
+                0x0000000000012b60        0x8 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000012b60                guard variable for Verilated::defaultContextp()::s_s
+ *fill*         0x0000000000012b68       0x18 
+ .bss._ZZN9Verilated15defaultContextpEvE3s_s
+                0x0000000000012b80      0x138 CMakeFiles/sim.dir/sim.cpp.o
+                0x0000000000012b80                Verilated::defaultContextp()::s_s
+ .bss           0x0000000000012cb8        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+ .bss           0x0000000000012cb8        0x0 /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+ *(COMMON)
+                0x0000000000012cb8                . = ALIGN ((. != 0x0)?0x8:0x1)
+
+.lbss
+ *(.dynlbss)
+ *(.lbss .lbss.* .gnu.linkonce.lb.*)
+ *(LARGE_COMMON)
+                0x0000000000012cb8                . = ALIGN (0x8)
+                0x0000000000012cb8                . = SEGMENT_START ("ldata-segment", .)
+
+.lrodata
+ *(.lrodata .lrodata.* .gnu.linkonce.lr.*)
+
+.ldata          0x0000000000014cb8        0x0
+ *(.ldata .ldata.* .gnu.linkonce.l.*)
+                0x0000000000014cb8                . = ALIGN ((. != 0x0)?0x8:0x1)
+                0x0000000000014cb8                . = ALIGN (0x8)
+                0x0000000000012cb8                _end = .
+                [!provide]                        PROVIDE (end = .)
+                0x0000000000014cb8                . = DATA_SEGMENT_END (.)
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment        0x0000000000000000       0x26
+ *(.comment)
+ .comment       0x0000000000000000       0x26 /usr/lib/gcc/x86_64-linux-gnu/11/crtbeginS.o
+                                         0x27 (size before relaxing)
+ .comment       0x0000000000000026       0x27 CMakeFiles/sim.dir/main.cpp.o
+ .comment       0x0000000000000026       0x27 CMakeFiles/sim.dir/sim.cpp.o
+ .comment       0x0000000000000026       0x27 /usr/lib/gcc/x86_64-linux-gnu/11/crtendS.o
+
+.gnu.build.attributes
+ *(.gnu.build.attributes .gnu.build.attributes.*)
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x0000000000000000       0xa0
+ *(.debug_aranges)
+ .debug_aranges
+                0x0000000000000000       0x50 CMakeFiles/sim.dir/main.cpp.o
+ .debug_aranges
+                0x0000000000000050       0x50 CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_pubnames
+ *(.debug_pubnames)
+
+.debug_info     0x0000000000000000    0x150e0
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x0000000000000000     0x6054 CMakeFiles/sim.dir/main.cpp.o
+ .debug_info    0x0000000000006054     0xf08c CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_abbrev   0x0000000000000000     0x1574
+ *(.debug_abbrev)
+ .debug_abbrev  0x0000000000000000      0x6ed CMakeFiles/sim.dir/main.cpp.o
+ .debug_abbrev  0x00000000000006ed      0xe87 CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_line     0x0000000000000000      0xf36
+ *(.debug_line .debug_line.* .debug_line_end)
+ .debug_line    0x0000000000000000      0x485 CMakeFiles/sim.dir/main.cpp.o
+ .debug_line    0x0000000000000485      0xab1 CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_frame
+ *(.debug_frame)
+
+.debug_str      0x0000000000000000    0x17c4f
+ *(.debug_str)
+ .debug_str     0x0000000000000000     0x46e0 CMakeFiles/sim.dir/main.cpp.o
+                                       0x495f (size before relaxing)
+ .debug_str     0x00000000000046e0    0x1356f CMakeFiles/sim.dir/sim.cpp.o
+                                      0x152ac (size before relaxing)
+
+.debug_loc
+ *(.debug_loc)
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+
+.debug_pubtypes
+ *(.debug_pubtypes)
+
+.debug_ranges
+ *(.debug_ranges)
+
+.debug_addr
+ *(.debug_addr)
+
+.debug_line_str
+                0x0000000000000000      0x5e2
+ *(.debug_line_str)
+ .debug_line_str
+                0x0000000000000000      0x3e1 CMakeFiles/sim.dir/main.cpp.o
+                                        0x495 (size before relaxing)
+ .debug_line_str
+                0x00000000000003e1      0x201 CMakeFiles/sim.dir/sim.cpp.o
+                                        0x5c1 (size before relaxing)
+
+.debug_loclists
+                0x0000000000000000      0x6bc
+ *(.debug_loclists)
+ .debug_loclists
+                0x0000000000000000      0x140 CMakeFiles/sim.dir/main.cpp.o
+ .debug_loclists
+                0x0000000000000140      0x57c CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_macro
+ *(.debug_macro)
+
+.debug_names
+ *(.debug_names)
+
+.debug_rnglists
+                0x0000000000000000      0x236
+ *(.debug_rnglists)
+ .debug_rnglists
+                0x0000000000000000       0x9a CMakeFiles/sim.dir/main.cpp.o
+ .debug_rnglists
+                0x000000000000009a      0x19c CMakeFiles/sim.dir/sim.cpp.o
+
+.debug_str_offsets
+ *(.debug_str_offsets)
+
+.debug_sup
+ *(.debug_sup)
+
+.gnu.attributes
+ *(.gnu.attributes)
+
+/DISCARD/
+ *(.note.GNU-stack)
+ *(.gnu_debuglink)
+ *(.gnu.lto_*)
+OUTPUT(sim elf64-x86-64)

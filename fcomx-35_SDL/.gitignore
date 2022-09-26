@@ -1,0 +1,11 @@
+CMakeFiles
+CMakeFiles/**
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+test.avi
+test.mp4
+Frames/
+*.vcd
+*.so
+sim
