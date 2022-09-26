@@ -1,3 +1,6 @@
 [submodule "src/main/scala/Spinal1802"]
 	path = src/main/scala/Spinal1802
 	url = git@github.com:wel97459/Spinal1802.git
+[submodule "src/main/scala/MySpinalHardware"]
+	path = src/main/scala/MySpinalHardware
+	url = https://github.com/wel97459/MySpinalHardware
