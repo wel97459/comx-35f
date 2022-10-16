@@ -68,6 +68,9 @@ class CDP1870 extends Component{
         val HSync = HorizontalCounter >= 56 && HorizontalCounter <= 59
         val Burst = HorizontalCounter >= 1 && HorizontalCounter <= 4
 
+        val HorizontalBlanking = HorizontalCounter <= 5 || HorizontalCounter >= 54
+        val VerticalBlanking = VerticalCounter <= 10 || VerticalCounter >= 252
+
         val HDisplay = HorizontalCounter >= 10 && HorizontalCounter < 50
 
         val DotClk6 = TimingCounter === 0 || TimingCounter === 6

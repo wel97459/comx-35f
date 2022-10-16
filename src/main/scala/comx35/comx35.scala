@@ -3,6 +3,7 @@ package comx35
 import java.io.{BufferedReader, FileReader}
 import spinal.core._
 import spinal.core.sim._
+import MySpinalHardware._
 
 import scala.util.Random
 import scala.util.control._
@@ -52,9 +53,12 @@ class comx35_test extends Component {
         val Color = out Bits(3 bits)
         val Pixel = out Bool()
 
+        val Sync = out Bool()
+
         val KBD_Latch = in Bool()
         val KBD_KeyCode = in Bits(8 bits)
         val KBD_Ready = out Bool()
+        val led = out Bool()
     }
 
     //Components
@@ -141,8 +145,11 @@ class comx35_test extends Component {
         io.Display_ := vis70.io.Display_
         io.Pixel := vis70.io.Pixel
         io.Color := vis70.io.Color
-
+        io.Sync := vis70.io.CompSync_
+        
         io.KBD_Ready := kbd71.io.Ready
+        var glow = new LedGlow()
+        io.led := glow.io.led
 }
 
 object comx35_sim {
@@ -183,7 +190,6 @@ object comx35_sim {
                         ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
                     }
 
-                    
                     if(dut.io.PMWR_.toBoolean == false){
                         pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
                     }
@@ -213,7 +219,7 @@ object comx35_sim {
     }
 }
 
-//Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be resued everywhere
+//Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be reused everywhere
 object ComxSpinalConfig extends SpinalConfig(
     targetDirectory = ".",
     oneFilePerComponent = true,
