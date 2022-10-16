@@ -1,40 +1,44 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Sun Sep 25 00:24:40 2022
+[*] Wed Oct  5 05:53:56 2022
 [*]
 [dumpfile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/simx.vcd"
-[dumpfile_mtime] "Sun Sep 25 00:24:23 2022"
-[dumpfile_size] 1942310138
+[dumpfile_mtime] "Wed Oct  5 05:48:03 2022"
+[dumpfile_size] 251999068
 [savefile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/debug.gtkw"
-[timestart] 2424800
-[size] 1920 1056
+[timestart] 417900
+[size] 3840 2123
 [pos] -1 -1
-*-5.000000 2424946 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-17.000000 1176100 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.comx35_test.
-[sst_width] 195
-[signals_width] 181
+[sst_width] 318
+[signals_width] 439
 [sst_expanded] 1
-[sst_vpaned_height] 309
+[sst_vpaned_height] 1316
 @28
 TOP.reset
 TOP.clk
-@22
-TOP.comx35_test.CPU.io_SC[1:0]
+TOP.comx35_test.clockedArea_CPU.io_Q
+TOP.comx35_test.NTSC_PAL_FlipFlop
+TOP.comx35_test.INT_FF
+@200
+-1802
 @28
-TOP.comx35_test.CPU.io_TPA
-TOP.comx35_test.CPU.io_TPB
-TOP.comx35_test.CPU.io_MWR
-TOP.comx35_test.CPU.io_MRD
+TOP.comx35_test.clockedArea_CPU.io_SC[1:0]
+TOP.comx35_test.clockedArea_CPU.io_TPA
+TOP.comx35_test.clockedArea_CPU.io_TPB
 @22
-TOP.comx35_test.CPU.io_Addr16[15:0]
-TOP.comx35_test.CPU.io_DataIn[7:0]
-TOP.comx35_test.CPU.io_DataOut[7:0]
-TOP.comx35_test.CPU.D[7:0]
-TOP.comx35_test.CPU.io_EF_n[3:0]
-TOP.comx35_test.CPU.io_N[2:0]
+TOP.comx35_test.clockedArea_CPU.io_Addr16[15:0]
+TOP.comx35_test.clockedArea_CPU.io_DataIn[7:0]
+TOP.comx35_test.clockedArea_CPU.io_DataOut[7:0]
 @28
-TOP.comx35_test.CPU.io_Q
+TOP.comx35_test.clockedArea_CPU.io_MRD
+TOP.comx35_test.clockedArea_CPU.io_MWR
+@29
+TOP.comx35_test.clockedArea_CPU.io_N[2:0]
+@28
+TOP.comx35_test.clockedArea_CPU.io_Q
 @200
 -1869
 @22
@@ -50,20 +54,10 @@ TOP.comx35_test.vis69.CmemAccessMode
 TOP.comx35_test.vis69.DoublePage
 TOP.comx35_test.vis69.FresVert
 TOP.comx35_test.vis69.HiRes16Line
-TOP.comx35_test.vis69.NineLine
-@200
--1870
-@28
-TOP.comx35_test.vis70.DispOff
-@22
-TOP.comx35_test.vis70.CMD_Reg[7:0]
-@28
-TOP.comx35_test.vis70.FresHorz
-TOP.comx35_test.vis70.CFC
-TOP.comx35_test.vis70.COLB[1:0]
 @200
 -video
 @28
+TOP.comx35_test.vis70.io_PreDisplay_
 TOP.comx35_test.vis70.io_Display_
 TOP.comx35_test.vis70.io_HSync_
 @22
@@ -72,25 +66,13 @@ TOP.comx35_test.vis70.io_Color[2:0]
 TOP.comx35_test.vis70.io_Pixel
 @200
 -regs
-@22
-TOP.comx35_test.CPU.R_0[15:0]
-TOP.comx35_test.CPU.R_1[15:0]
-TOP.comx35_test.CPU.R_2[15:0]
-TOP.comx35_test.CPU.R_3[15:0]
-TOP.comx35_test.CPU.R_4[15:0]
-TOP.comx35_test.CPU.R_5[15:0]
-TOP.comx35_test.CPU.R_6[15:0]
-TOP.comx35_test.CPU.R_7[15:0]
-TOP.comx35_test.CPU.R_8[15:0]
-TOP.comx35_test.CPU.R_9[15:0]
-@23
-TOP.comx35_test.CPU.R_10[15:0]
-@22
-TOP.comx35_test.CPU.R_11[15:0]
-TOP.comx35_test.CPU.R_12[15:0]
-TOP.comx35_test.CPU.R_13[15:0]
-TOP.comx35_test.CPU.R_14[15:0]
-TOP.comx35_test.CPU.R_15[15:0]
+@28
+TOP.comx35_test.vis70.DispOff
+TOP.comx35_test.vis70.FresHorz
+TOP.comx35_test.vis69.FresVert
+TOP.comx35_test.vis69.DoublePage
+TOP.comx35_test.vis69.HiRes16Line
+TOP.comx35_test.vis69.NineLine
 @200
 -KBD
 @28
