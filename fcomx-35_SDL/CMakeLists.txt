@@ -22,7 +22,7 @@ add_library(dt_lib SHARED
 )
 
 #verilate(dt_lib SOURCES ../comx35_test.v)
-verilate(dt_lib SOURCES ../comx35_test.v OPT_GLOBAL "-O3" INCLUDE_DIRS "../" TRACE)
+verilate(dt_lib SOURCES ../comx35_test.v OPT_GLOBAL "-O3" INCLUDE_DIRS "../" TRACE_FST)
 
 add_executable(${CMAKE_PROJECT_NAME}
   main.cpp

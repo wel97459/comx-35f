@@ -3,19 +3,19 @@
 #include <memory>
 #include <vector>
 #include "sim.h"
-#include <verilated_vcd_c.h>
+#include <verilated_fst_c.h>
 #include "Vcomx35_test.h"
 
 void (*sim_draw)();
 Uint32 *screenPixels;
 SDL_Texture *screen;
 
-VerilatedVcdC	*m_trace;
+VerilatedFstC* m_trace;
 Vcomx35_test comx;
 
 Uint64 main_time=0;
 Uint64 main_trace=0;
-Uint8 trace=0;
+Uint8 trace=1;
 
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
@@ -92,7 +92,7 @@ int loadFile(const char *filename, Uint8 *pointer, const Uint32 len)
         return -2;
     }
 
-    fread(pointer, 1, fsize, fp);
+    size_t s = fread(pointer, 1, fsize, fp);
     fclose(fp);
 
     return 0;
@@ -112,9 +112,9 @@ void sim_init(Uint32 *p, SDL_Texture *td, void (*d)()){
 
 	#ifdef TRACE
 		Verilated::traceEverOn(true);
-		m_trace = new VerilatedVcdC;
+		m_trace = new VerilatedFstC;
 		comx.trace(m_trace, 99);
-		m_trace->open ("simx.vcd");
+		m_trace->open ("simx.fst");
 	#endif
 }
 
@@ -171,7 +171,7 @@ void sim_run(){
             scanX ++;
             if(scanX > 61){
                 drawX++;
-                screenPixels[drawX + (drawY*240)] = colors[comx.io_Color];
+                screenPixels[drawX + (drawY*240)] =  colors[comx.io_Color];
             }
         }
         if(comx.io_HSync_ && !HSync_Edge){
@@ -189,25 +189,26 @@ void sim_run(){
             sim_draw();
             sprintf(tmpstr,"Frames/Frame%04i.bmp",FrameCount++);
 			screenshot(tmpstr);
-            // if(FrameCount > 60 && FrameCount < 105){
+            // if(FrameCount > 900 && FrameCount < 905){
             //     trace=1;
             // }else{
             //     trace=0;
             // }
+            //if(FrameCount > 904) sim_end();
         }
     }
 
-    if(FrameCount == 10 && comx.io_KBD_Ready){
+    if(FrameCount % 10 == 0 && comx.io_KBD_Ready){
             comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+            comx.io_KBD_KeyCode = ComxKeyboard('\r');
     } 
 
-    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    }
+    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+    //         comx.io_KBD_Latch = true;
+    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    // }
 
-    if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
+    //if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
     Display_Edge = comx.io_Display_;
     HSync_Edge = comx.io_HSync_;
