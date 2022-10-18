@@ -50,8 +50,8 @@ set_io -nowarn gpio_10 10
 # Following are also found on v2.x of the UPduino
 set_io -nowarn gpio_12 12
 set_io -nowarn -pullup yes reset_ 21
-set_io -nowarn gpio_13 13
-set_io -nowarn gpio_19 19
+set_io -nowarn scl 13
+set_io -nowarn sda 19
 
 set_io -nowarn lcd_rst 18
 set_io -nowarn lcd_dc 11

@@ -3,7 +3,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.blackbox.lattice.ice40._
 import MySpinalHardware._
-
+import VIS._
 class top extends Component {
     val io = new Bundle{
         val reset_ = in Bool()
@@ -15,6 +15,9 @@ class top extends Component {
         val spi_ssn = out Bool()
         val spi_mosi = out Bool()
         val spi_miso = in Bool()
+
+        val scl = inout(Analog(Bool()))
+        val sda = inout(Analog(Bool()))
 
         val led_red = out Bool()
     }
@@ -49,6 +52,24 @@ class top extends Component {
         }
 
         val areaRst = new ResetArea(!reset, false) {
+            val kbd_ready = Reg(Bool()) init(False)
+            val area40kHz = new SlowArea(50 kHz) {
+                val ready = RegNext(kbd_ready) init(False)
+                val kbd = new Q10Keyboard()
+
+                kbd.io.i_scl := io.scl
+                when(!kbd.io.o_scl_write){
+                    io.scl := False
+                }
+
+                kbd.io.i_sda := io.sda
+                when(!kbd.io.o_sda_write){
+                    io.sda := False
+                }
+
+                kbd.io.key_code_stream.ready := ready.rise()
+            }
+
             var loader = new Loader()
             loader.io.spi_miso := io.spi_miso
             io.spi_mosi := loader.io.spi_mosi
@@ -64,39 +85,61 @@ class top extends Component {
             ram.STANDBY := False
             ram.CHIPSELECT := True
 
-            val ram_address = B"15'h0000"
-            val ram_data_in = B"8'h00"
-            val wea = False
-            ram.MASKWREN := ram_address(0) ? B"1100" | B"0011"
+            val Frame = Counter(16 bits)
+
+            val a2c = new ascii2comx()
+            a2c.ascii := area40kHz.kbd.io.key_code_stream.payload
             
-            ram.DATAIN := ram_data_in ## ram_data_in
-            val ram_data_out = ram_address(0) ? ram.DATAOUT(15 downto 8) | ram.DATAOUT(7 downto 0)
-            ram.WREN := wea
             val areaRst = new ResetArea(!loader.io.ready, false) {
                 val areaDiv4 = new SlowArea(4) {
+                    val comx35 = new comx35_test()
+                    comx35.io.Start := True
+                    comx35.io.DataIn := 0x00
+                    
+                    when(comx35.io.Display_.rise() && !Frame.willOverflowIfInc)
+                    {
+                        Frame.increment()
+                    }
+
+                    comx35.io.KBD_Latch := False
+                    comx35.io.KBD_KeyCode := a2c.comx
+                    val keyHit = Reg(Bool()) init(False)
+                    when(comx35.io.KBD_Ready && comx35.io.Display_.rise()){
+                        when(area40kHz.kbd.io.key_code_stream.valid){
+                            comx35.io.KBD_Latch := True
+                            kbd_ready := True
+                        }
+                    }
+                    when(area40kHz.ready.rise()){
+                        kbd_ready := False
+                    }
                     val pram = new Ram(log2Up(0x3FF))
                     val cram = new Ram(log2Up(0x3FF))
                     pram.io.ena := True
                     cram.io.ena := True
 
-                    val comx35 = new comx35_test()
-                    comx35.io.Start := True
-                    comx35.io.DataIn := 0x00
-                    comx35.io.KBD_Latch := False
-                    comx35.io.KBD_KeyCode := 0x80
+                    val ram_address = comx35.io.Addr16(14 downto 0)
+                    val ram_data_in = B"8'h00"
+                    val wea = False
+                    
+                    ram.DATAIN := ram_data_in ## ram_data_in
+                    ram.WREN := wea
+                    val ram_data_out = ram_address(0) ? ram.DATAOUT(15 downto 8) | ram.DATAOUT(7 downto 0)
+                    ram.MASKWREN := ram_address(0) ? B"1100" | B"0011"
+                    ram.ADDRESS := ram_address(14 downto 1).asUInt
+
                     io.video := comx35.io.Pixel
                     io.sync := comx35.io.Sync
-                    ram.ADDRESS := ram_address(14 downto 1).asUInt
 
                     pram.io.addra := comx35.io.PMA
                     comx35.io.PMD_In := pram.io.douta
                     pram.io.dina := comx35.io.PMD_Out
-                    pram.io.wea := (!comx35.io.PMWR_)
+                    pram.io.wea := comx35.io.PMWR_.rise()
 
                     cram.io.addra := comx35.io.CMA
                     comx35.io.CMD_In := cram.io.douta
                     cram.io.dina := comx35.io.CMD_Out
-                    cram.io.wea := (!comx35.io.CMWR_)
+                    cram.io.wea := comx35.io.CMWR_.rise()
 
                     loader.io.address := comx35.io.Addr16(14 downto 0)
                     when(!comx35.io.MRD)
@@ -108,18 +151,14 @@ class top extends Component {
                             comx35.io.DataIn := ram_data_out
                         }
                     }
-                    when(!comx35.io.MWR)
-                    {
-                        when(comx35.io.Addr16.asUInt >= 0x4000 && comx35.io.Addr16.asUInt < 0xC000){
-                            wea := True
-                            ram_data_in := comx35.io.DataOut
-                        }
+
+                    when(comx35.io.Addr16.asUInt >= 0x4000 && comx35.io.Addr16.asUInt < 0xC000){
+                        wea := comx35.io.MWR.rise()
+                        ram_data_in := comx35.io.DataOut
                     }
-                    io.led_red := !comx35.io.led
+                    io.led_red := !comx35.io.Q
                 }
-
             }
-
         }
     }
 }

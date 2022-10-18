@@ -58,7 +58,7 @@ class comx35_test extends Component {
         val KBD_Latch = in Bool()
         val KBD_KeyCode = in Bits(8 bits)
         val KBD_Ready = out Bool()
-        val led = out Bool()
+        val Q = out Bool()
     }
 
     //Components
@@ -148,8 +148,7 @@ class comx35_test extends Component {
         io.Sync := vis70.io.CompSync_
         
         io.KBD_Ready := kbd71.io.Ready
-        var glow = new LedGlow()
-        io.led := glow.io.led
+        io.Q := clockedArea.CPU.io.Q
 }
 
 object comx35_sim {
@@ -222,7 +221,7 @@ object comx35_sim {
 //Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be reused everywhere
 object ComxSpinalConfig extends SpinalConfig(
     targetDirectory = ".",
-    oneFilePerComponent = true,
+    oneFilePerComponent = false,
     defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
 )
 
