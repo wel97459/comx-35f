@@ -40,7 +40,7 @@ class CDP1869 extends Component {
     val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && !io.MRD && io.TPB) init(0)
     val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && !io.MRD && io.TPB) init(0)
     val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && !io.MRD && io.TPB) init(0)
-    
+
     val RCA = Reg(UInt(5 bits)) init(0) //counter for character address
     val HMA = Reg(UInt(11 bits)) init(0) //offset counter
     val RPA = Reg(UInt(11 bits)) init(0) //counter for page address
@@ -81,7 +81,7 @@ class CDP1869 extends Component {
                 RPA := HMA
             }otherwise{
                 RCA := 0
-                HMA := FresVert ? HMA_NEXT_40 | HMA_NEXT_20
+                HMA := RPA
             }
         }
     }

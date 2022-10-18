@@ -50,4 +50,44 @@ class CDP1871 extends Component
     io.Ready := ready
 }
 
+class ascii2comx extends Component
+{   
+    val ascii = in Bits(8 bits)
+    val comx = out Bits(8 bits)
 
+    val keyboardCode_ = B"8'h00" 
+
+    when(ascii.asUInt  === '\r'){keyboardCode_ := 0x80
+    }elsewhen(ascii.asUInt  === '\n'){keyboardCode_ := 0x80
+    }elsewhen(ascii.asUInt  === '@'){keyboardCode_ := 0x20
+    }elsewhen(ascii.asUInt  === '#'){keyboardCode_ := 0x23
+    }elsewhen(ascii.asUInt  === '\''){ keyboardCode_ := 0x27
+    }elsewhen(ascii.asUInt  === '['){keyboardCode_ := 0x28
+    }elsewhen(ascii.asUInt  === ']'){keyboardCode_ := 0x29
+    }elsewhen(ascii.asUInt  === ':'){keyboardCode_ := 0x2a
+    }elsewhen(ascii.asUInt  === ';'){keyboardCode_ := 0x2b
+    }elsewhen(ascii.asUInt  === '<'){keyboardCode_ := 0x2c
+    }elsewhen(ascii.asUInt  === '='){keyboardCode_ := 0x2d
+    }elsewhen(ascii.asUInt  === '`'){keyboardCode_ := 0x2d//=
+    }elsewhen(ascii.asUInt  === '>'){keyboardCode_ := 0x2e
+    }elsewhen(ascii.asUInt  === '\\'){keyboardCode_ := 0x2f
+    }elsewhen(ascii.asUInt  === '.'){keyboardCode_ := 0x3a
+    }elsewhen(ascii.asUInt  === ','){keyboardCode_ := 0x3b
+    }elsewhen(ascii.asUInt  === '('){keyboardCode_ := 0x3c
+    }elsewhen(ascii.asUInt  === '^'){keyboardCode_ := 0x3d
+    }elsewhen(ascii.asUInt  === '~'){keyboardCode_ := 0x3d //^
+    }elsewhen(ascii.asUInt  === ')'){keyboardCode_ := 0x3e
+    }elsewhen(ascii.asUInt  === '_'){keyboardCode_ := 0x3f
+    }elsewhen(ascii.asUInt  === '?'){keyboardCode_ := 0x40
+    }elsewhen(ascii.asUInt  === '+'){keyboardCode_ := 0x5b
+    }elsewhen(ascii.asUInt  === '-'){keyboardCode_ := 0x5c
+    }elsewhen(ascii.asUInt  === '*'){keyboardCode_ := 0x5d
+    }elsewhen(ascii.asUInt  === '/'){keyboardCode_ := 0x5e
+    }elsewhen(ascii.asUInt  === ' '){keyboardCode_ := 0x5f
+    }elsewhen(ascii.asUInt  === '|'){keyboardCode_ := 0x1B
+    }elsewhen(ascii.asUInt  === 0x08){keyboardCode_ := 0x08
+    }elsewhen(ascii.asUInt < 0x90) {keyboardCode_ := ascii
+    }elsewhen(ascii.asUInt >= 0x90) {keyboardCode_ := ascii & 0x7f}
+
+    comx := keyboardCode_.asBits
+}
