@@ -32,7 +32,8 @@ Uint16 FrameCount = 0;
 Uint16 FrameCurent = 0;
 char tmpstr[64];
 
-char basicStr[]="\r5 i=0\r10 cpos(0,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
+//char basicStr[]="\r5 i=0\r10 cpos(0,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
+char basicStr[]="\r5 i=0\b\b\b";
 char *keyInput = &basicStr[0];
 
 char ComxKeyboard(char keyCode)
@@ -68,6 +69,7 @@ char ComxKeyboard(char keyCode)
         case '*':keyboardCode_ = 0x5d; break;
         case '/':keyboardCode_ = 0x5e; break;
         case ' ':keyboardCode_ = 0x5f; break;
+        case '\b':keyboardCode_ = 0x86; break;
     }
     if (keyboardCode_ >= 0x90)  keyboardCode_ &= 0x7f;
     return keyboardCode_;
@@ -198,17 +200,17 @@ void sim_run(){
         }
     }
 
-    if(FrameCount % 10 == 0 && comx.io_KBD_Ready){
+    if(FrameCount == 10 && comx.io_KBD_Ready){
             comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard('\r');
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     } 
 
-    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-    //         comx.io_KBD_Latch = true;
-    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    // }
+    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+            comx.io_KBD_Latch = true;
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    }
 
-    //if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
+    if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
     Display_Edge = comx.io_Display_;
     HSync_Edge = comx.io_HSync_;

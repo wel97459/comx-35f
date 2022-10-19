@@ -53,12 +53,12 @@ class CDP1870 extends Component{
         val VSync_PAL = VerticalCounter >=  308
         val VSync = io.PalOrNTSC ? VSync_PAL | VSync_NTSC
 
-        val VDisplay_NTSC = VerticalCounter >= 36 && VerticalCounter <= 228
-        val VDisplay_PAL = VerticalCounter >= 44 && VerticalCounter <= 260
+        val VDisplay_NTSC = VerticalCounter >= 36 && VerticalCounter < 228
+        val VDisplay_PAL = VerticalCounter >= 44 && VerticalCounter < 260
         val VDisplay = io.PalOrNTSC ? VDisplay_PAL | VDisplay_NTSC
 
-        val VPreDisplay_NTSC = VerticalCounter >= 35 && VerticalCounter <= 228
-        val VPreDisplay_PAL = VerticalCounter >= 43 && VerticalCounter <= 260
+        val VPreDisplay_NTSC = VerticalCounter >= 35 && VerticalCounter < 228
+        val VPreDisplay_PAL = VerticalCounter >= 43 && VerticalCounter < 260
         val VPreDisplay = io.PalOrNTSC ? VPreDisplay_PAL | VPreDisplay_NTSC
 
         val VReset_NTSC = VerticalCounter === 262

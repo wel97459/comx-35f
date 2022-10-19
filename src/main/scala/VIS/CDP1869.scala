@@ -73,7 +73,11 @@ class CDP1869 extends Component {
         HMA := (HMA_Reg ## B"00").asUInt
     }otherwise{
         when(io.AddSTB_.fall()){
-            RPA := RPA + 1
+            when(RPA >= 959){
+                RPA := 0
+            }otherwise{
+                RPA := RPA + 1
+            }
         }
         when(io.HSync_.fall()){
             when(RCA_15 || RCA_7 || RCA_8){
