@@ -130,5 +130,5 @@ class CDP1870 extends Component{
 
     io.AddSTB_ := AddSTB_
     io.DataOut := 0x00
-    io.CPUCLK := TimingCounter(0)
+    io.CPUCLK := TimingCounter(0).rise()
 }

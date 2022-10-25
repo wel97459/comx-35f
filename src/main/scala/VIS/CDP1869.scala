@@ -31,6 +31,8 @@ class CDP1869 extends Component {
         val PMSEL = out Bool()
 
         val PMA = out Bits(10 bits)
+
+        val Sound = out Bits(4 bits)
     }
     
     //Registers
@@ -39,12 +41,16 @@ class CDP1869 extends Component {
 
     val HMA_Reg = RegNextWhen(Addr16(10 downto 2), io.N === 7 && !io.MRD && io.TPB) init(0)
     val PMA_Reg = RegNextWhen(Addr16(10 downto 0), io.N === 6 && !io.MRD && io.TPB) init(0)
-    val WN_Reg = RegNextWhen(Addr16(7 downto 0), io.N === 5 && !io.MRD && io.TPB) init(0)
+    val WN_Reg = RegNextWhen(Addr16, io.N === 5 && !io.MRD && io.TPB) init(0)
+    val SN_Reg = RegNextWhen(Addr16(14 downto 0), io.N === 4 && !io.MRD && io.TPB) init(B"15'h0080")
 
     val RCA = Reg(UInt(5 bits)) init(0) //counter for character address
     val HMA = Reg(UInt(11 bits)) init(0) //offset counter
     val RPA = Reg(UInt(11 bits)) init(0) //counter for page address
 
+    val ToneDiv = Reg(UInt(9 bits)) init(0) //counter for page address
+    val ToneCounter = Reg(UInt(7 bits)) init(0) //counter for page address
+    val Tone_FF = Reg(Bool()) init(false)
     //Signals
     val FresVert = WN_Reg(7)
     val DoublePage = WN_Reg(6)
@@ -62,10 +68,26 @@ class CDP1869 extends Component {
     val RCA_7 = RCA < 7 && NineLine
     val RCA_8 = RCA < 8 && !NineLine
 
-    val RemapRCA = FresVert ? RCA.asBits(2 downto 0) | RCA.asBits(3 downto 1)
+    val RemapRCA = FresVert ? RCA.asBits(3 downto 0) | RCA.asBits(4 downto 1)
 
     val PMSEL = (UpperAddr.asUInt >= 0xf8) && io.Display_
     val CMSEL = (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7) && io.Display_
+
+    val Tone = SN_Reg(14 downto 8)
+    val Tone_Off = SN_Reg(7)
+    val Tone_Freq_Sel = SN_Reg(6 downto 4)
+    val Tone_Amp = SN_Reg(3 downto 0)
+
+    val Tone_Clk = Tone_Freq_Sel.mux(
+        0 -> ToneDiv(8),
+        1 -> ToneDiv(7),
+        2 -> ToneDiv(6),
+        3 -> ToneDiv(5),
+        4 -> ToneDiv(4),
+        5 -> ToneDiv(3),
+        6 -> ToneDiv(2),
+        7 -> ToneDiv(1)
+    )
 
     when(io.Display_){
         RCA := 0
@@ -90,6 +112,20 @@ class CDP1869 extends Component {
         }
     }
 
+
+    when(io.TPA.rise() || io.TPB.rise() || io.TPA.fall() || io.TPB.fall()){
+        ToneDiv := ToneDiv + 1
+    }
+
+    when(Tone_Clk.rise()){
+        when(ToneCounter < Tone.asUInt){
+            ToneCounter := ToneCounter + 1
+        }otherwise{
+            ToneCounter := 0
+            Tone_FF := !Tone_FF
+        }
+    }    
+
     //Outputs
     io.N3_ := (io.N =/= 3)
     io.DataOut := 0x00
@@ -100,6 +136,9 @@ class CDP1869 extends Component {
 
     io.CMSEL := CMSEL
     io.CMWR_ := (io.Display_ & CMSEL) ? io.MWR | True
-    io.CMA3_PMA10 := False //TODO
-    io.CMA := io.Display_ ? ((CMSEL) ? Addr16(2 downto 0) | 0x0) | RemapRCA
+    io.CMA := io.Display_ ? ((CMSEL) ? Addr16(2 downto 0) | 0x0) | RemapRCA(2 downto 0)
+
+    io.CMA3_PMA10 := DoublePage ? RPA(10) | RemapRCA.asBits(3)
+
+    io.Sound := Tone_FF ? Tone_Amp | B"0000"
 }

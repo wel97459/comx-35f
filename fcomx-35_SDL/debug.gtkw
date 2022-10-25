@@ -1,21 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Wed Oct  5 05:53:56 2022
+[*] Wed Oct 19 02:27:26 2022
 [*]
-[dumpfile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/simx.vcd"
-[dumpfile_mtime] "Wed Oct  5 05:48:03 2022"
-[dumpfile_size] 251999068
+[dumpfile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/simx.fst"
+[dumpfile_mtime] "Wed Oct 19 02:10:50 2022"
+[dumpfile_size] 12563284
 [savefile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/debug.gtkw"
-[timestart] 417900
-[size] 3840 2123
+[timestart] 25340723
+[size] 1920 1056
 [pos] -1 -1
-*-17.000000 1176100 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-7.174471 25349034 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.comx35_test.
 [sst_width] 318
 [signals_width] 439
 [sst_expanded] 1
-[sst_vpaned_height] 1316
+[sst_vpaned_height] 651
 @28
 TOP.reset
 TOP.clk
@@ -35,14 +35,17 @@ TOP.comx35_test.clockedArea_CPU.io_DataOut[7:0]
 @28
 TOP.comx35_test.clockedArea_CPU.io_MRD
 TOP.comx35_test.clockedArea_CPU.io_MWR
-@29
+@22
 TOP.comx35_test.clockedArea_CPU.io_N[2:0]
 @28
 TOP.comx35_test.clockedArea_CPU.io_Q
 @200
 -1869
-@22
+@24
+TOP.comx35_test.vis69.RCA[4:0]
+TOP.comx35_test.vis69.RPA[10:0]
 TOP.comx35_test.vis69.HMA_Reg[8:0]
+@22
 TOP.comx35_test.vis69.PMA_Reg[10:0]
 TOP.comx35_test.vis69.WN_Reg[7:0]
 @24
@@ -54,6 +57,16 @@ TOP.comx35_test.vis69.CmemAccessMode
 TOP.comx35_test.vis69.DoublePage
 TOP.comx35_test.vis69.FresVert
 TOP.comx35_test.vis69.HiRes16Line
+@200
+-1870
+@24
+TOP.comx35_test.vis70.TimingCounter[3:0]
+TOP.comx35_test.vis70.HorizontalCounter[5:0]
+TOP.comx35_test.vis70.VerticalCounter[8:0]
+@28
+TOP.comx35_test.vis70.VPreDisplay
+@29
+TOP.comx35_test.vis70.VDisplay
 @200
 -video
 @28

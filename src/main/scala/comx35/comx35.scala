@@ -46,6 +46,8 @@ class comx35_test extends Component {
         val CMD_In = in Bits(8 bit)
         val CMD_Out = out Bits(8 bit)
 
+        val CMA3_PMA10 = out Bool()
+
         val Start = in Bool()
         
         val HSync_ = out Bool()
@@ -59,6 +61,8 @@ class comx35_test extends Component {
         val KBD_KeyCode = in Bits(8 bits)
         val KBD_Ready = out Bool()
         val Q = out Bool()
+        val Tape_in = in Bool()
+        val Sound = out Bits(4 bits)
     }
 
     //Components
@@ -115,7 +119,7 @@ class comx35_test extends Component {
 
         clockedArea.CPU.io.Wait_n := io.Start
         clockedArea.CPU.io.Clear_n := io.Start
-        clockedArea.CPU.io.EF_n := True ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
+        clockedArea.CPU.io.EF_n := io.Tape_in ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
         clockedArea.CPU.io.Interrupt_n := INT_FF
     //Latches
         when(vis70.io.PreDisplay_.rise()){
@@ -149,6 +153,10 @@ class comx35_test extends Component {
         
         io.KBD_Ready := kbd71.io.Ready
         io.Q := clockedArea.CPU.io.Q
+
+        io.CMA3_PMA10 := vis69.io.CMA3_PMA10
+
+        io.Sound := vis69.io.Sound
 }
 
 object comx35_sim {
