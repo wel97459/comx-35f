@@ -1,30 +1,55 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+//#include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <vector>
 #include "sim.h"
+#include "crt.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 using namespace std;
 //SDL renderer and single font (leaving global for simplicity)
 SDL_Renderer *renderer;
 SDL_Window *window;
-TTF_Font *font;
+// TTF_Font *font;
 SDL_Texture *texDisplay;
 SDL_Rect texDisplayDest;
 
 Uint32 * pixels = new Uint32[240 * 240];
 
+int *video = NULL;
+static struct CRT crt;
+
+void SetAlpha(void *pixels){
+    union p
+    {
+        void *p;
+        char *c;
+    };
+    union p pix;
+    pix.p = pixels;
+    for (size_t i = 3; i < (WINDOW_HEIGHT*WINDOW_WIDTH)*4; i+=4)
+    {
+        pix.c[i] = pix.c[i-3];
+        pix.c[i-3] = pix.c[i-1];
+        pix.c[i-1] = pix.c[i];
+        pix.c[i] = 0xff;
+    }
+}
+
 void screenshot(const char filename[])
 {
 	// Create an empty RGB surface that will be used to create the screenshot bmp file
-	SDL_Surface* pScreenShot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_Surface* pScreenShot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000);
 	
 	// Read the pixels from the current render target and save them onto the surface
 	SDL_RenderReadPixels(renderer, NULL, SDL_GetWindowPixelFormat(window), pScreenShot->pixels, pScreenShot->pitch);
-
+    
 	// Create the bmp screenshot file
-	SDL_SaveBMP(pScreenShot, filename);
-
+	//SDL_SaveBMP(pScreenShot, filename);
+    SetAlpha(pScreenShot->pixels);
+    
+    stbi_write_png(filename, WINDOW_WIDTH, WINDOW_HEIGHT, 4, pScreenShot->pixels, WINDOW_WIDTH*4);
 	// Destroy the screenshot surface
 	SDL_FreeSurface(pScreenShot);
 }
@@ -42,15 +67,13 @@ int handleInput()
 		case SDL_KEYDOWN:
 			if (event.key.keysym.sym == SDLK_ESCAPE)
 				return -1;
+            sim_keyevent(event.key.keysym.sym);
 
 		// case SDL_MOUSEBUTTONDOWN:
 		// 	handleMouse(event.button.x, event.button.y);
 		// 	break;
 		}
     }
-    
-    const Uint8* keystates = SDL_GetKeyboardState(NULL);
-    sim_keyevent(keystates);
     return 0;
 }
 
@@ -68,40 +91,46 @@ int initVideo()
 		return 0;
 	}
 
-    renderer = SDL_CreateRenderer(window, -1, 0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    /* Initialize the TTF library */
-    if (TTF_Init() < 0) {
-            fprintf(stderr, "Couldn't initialize TTF: %s\n",SDL_GetError());
-            SDL_Quit();
-            return 0;
-    }
+    // /* Initialize the TTF library */
+    // if (TTF_Init() < 0) {
+    //         fprintf(stderr, "Couldn't initialize TTF: %s\n",SDL_GetError());
+    //         SDL_Quit();
+    //         return 0;
+    // }
 
-    font = TTF_OpenFont("OpenSans-Regular.ttf", 24);
-    if(!font) {
-        printf("TTF_OpenFont: %s\n", TTF_GetError());
-        SDL_Quit();
-        return 0;
-        // handle error
-    }
+    // font = TTF_OpenFont("OpenSans-Regular.ttf", 24);
+    // if(!font) {
+    //     printf("TTF_OpenFont: %s\n", TTF_GetError());
+    //     SDL_Quit();
+    //     return 0;
+    //     // handle error
+    // }
 
 	texDisplayDest.x=(WINDOW_WIDTH/2) - (240*2)/2;
 	texDisplayDest.y=WINDOW_HEIGHT/2 - (240*2)/2;
 	texDisplayDest.w=240*2;
 	texDisplayDest.h=240*2;
 
-	texDisplay = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 240, 240);
+	texDisplay = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	return 1;
 }
 
-void draw()
+static void draw()
 {
     //clear screen, draw each element, then flip the buffer
-    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-    SDL_RenderClear(renderer);
-
 	SDL_RenderCopy(renderer, texDisplay, NULL, &texDisplayDest);
+    SDL_RenderPresent(renderer);
+}
+
+void drawCRT()
+{
+	crt_draw(&crt, 0, 0, 100, 4);
+	SDL_UpdateTexture(texDisplay, NULL, video, WINDOW_WIDTH * sizeof(Uint32));
+
+	SDL_RenderCopy(renderer, texDisplay, NULL, NULL);
 
     SDL_RenderPresent(renderer);
 }
@@ -110,8 +139,11 @@ int main(int argc, char *argv[])
 {
     if(initVideo()==0) return -1;
 
-    sim_init(pixels, texDisplay, draw);
-    draw();
+    video = (int *) malloc(WINDOW_WIDTH * sizeof(int) * WINDOW_HEIGHT);
+    crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, video);
+
+    sim_init(video, texDisplay, drawCRT, &crt);
+    drawCRT();
 
     do{
         sim_run();

@@ -2,13 +2,26 @@
 #include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <vector>
+#include <pthread.h>
+#include <thread>
 #include "sim.h"
+#include "crt.h"
+
+#define VL_THREADED 1
+#include <verilated_threads.h>
 #include <verilated_fst_c.h>
 #include "Vcomx35_test.h"
 
 void (*sim_draw)();
 Uint32 *screenPixels;
 SDL_Texture *screen;
+int *sim_video;
+struct CRT *sim_crt;
+static int vidTime = 0;
+static int test = 4;
+static int dih = 0;
+static int dihA = 15;
+static int dihB = 0;
 
 VerilatedFstC* m_trace;
 Vcomx35_test comx;
@@ -24,16 +37,19 @@ Uint8 cram[0x400];
 
 Uint8 Display_Edge=0;
 Uint8 HSync_Edge=0;
+Uint8 VSync_Edge=0;
 Uint8 Ready_Edge=0;
 
 Uint16 drawX, drawY, scanX;
 
 Uint16 FrameCount = 0;
 Uint16 FrameCurent = 0;
+
+Uint64 ticksLast = 0 ;
 char tmpstr[64];
 
-//char basicStr[]="\r5 i=0\r10 cpos(0,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
-char basicStr[]="\r5 i=0\b\b\b";
+char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
+//char basicStr[]="\r5 i=0\b\b\b";
 char *keyInput = &basicStr[0];
 
 char ComxKeyboard(char keyCode)
@@ -100,10 +116,12 @@ int loadFile(const char *filename, Uint8 *pointer, const Uint32 len)
     return 0;
 }
 
-void sim_init(Uint32 *p, SDL_Texture *td, void (*d)()){
-    screenPixels = p;
+void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
+    //screenPixels = p;
     sim_draw = d;
     screen = td;
+    sim_video = v;
+    sim_crt = c;
 
     SDL_UpdateTexture(screen, NULL, screenPixels, 240 * sizeof(Uint32));
     sim_draw();
@@ -120,20 +138,58 @@ void sim_init(Uint32 *p, SDL_Texture *td, void (*d)()){
 	#endif
 }
 
-void sim_keyevent(const uint8_t* keystates){
-
+void sim_keyevent(int key){
+    if (key == SDLK_9) {
+        test -= 1;
+        printf("%d\n", test);
+    }
+    if (key == SDLK_0) {
+        test += 1;
+        printf("%d\n", test);
+    }
+    if (key == SDLK_o) {
+        dihA -= 1;
+        printf("%d\n", dihA);
+    }
+    if (key == SDLK_p) {
+        dihA += 1;
+        printf("%d\n", dihA);
+    }
+    if (key == SDLK_k) {
+        dihB -= 1;
+        printf("%d\n", dihB);
+    }
+    if (key == SDLK_l) {
+        dihB += 1;
+        printf("%d\n", dihB);
+    }
 }
 
 Uint32 colors[]={
-    0xFF000000,
-    0xFF00FF00,
-    0xFF0000FF,
-    0xFF00FFFF,
-    0xFFFF0000,
-    0xFFFFFF00,
-    0xFFFF00FF,
-    0xFFFFFFFF,
+    0x00000000,
+    0x0000FF00,
+    0x000000FF,
+    0x0000FFFF,
+    0x00FF0000,
+    0x00FFFF00,
+    0x00FF00FF,
+    0x00FFFFFF,
 };
+
+void doNTSC(int CompSync, int Video)
+{	
+	int tt = test;
+	int v = -40;
+	if(CompSync) v=BLANK_LEVEL;
+	if(Video) v=WHITE_LEVEL;
+	while (tt > 0) {
+		sim_crt->analog[vidTime] = v;
+		vidTime = (vidTime+1) % (CRT_INPUT_SIZE);
+		tt--;
+	}
+//	dih = (dih+1) % dihA;
+	return;
+}
 
 void sim_run(){
     comx.reset = !(main_time>10);
@@ -168,37 +224,42 @@ void sim_run(){
         FrameCurent = FrameCount + 4;
     }
 
-    if(!comx.io_Display_){
-        if(comx.io_HSync_){
-            scanX ++;
-            if(scanX > 61){
-                drawX++;
-                screenPixels[drawX + (drawY*240)] =  colors[comx.io_Color];
-            }
-        }
-        if(comx.io_HSync_ && !HSync_Edge){
-            scanX = 0;
-            drawX = 0;
-            drawY++;
-//            printf("sx: %u, dx: %u, dy: %u\n", scanX, drawX, drawY);
-        }
-    }else{
-        if(comx.io_Display_ && !Display_Edge){
-            scanX = 0;
-            drawX = 0;
-            drawY = 0;
-            SDL_UpdateTexture(screen, NULL, screenPixels, 240 * sizeof(Uint32));
-            sim_draw();
-            sprintf(tmpstr,"Frames/Frame%04i.bmp",FrameCount++);
-			screenshot(tmpstr);
-            // if(FrameCount > 900 && FrameCount < 905){
-            //     trace=1;
-            // }else{
-            //     trace=0;
-            // }
-            //if(FrameCount > 904) sim_end();
-        }
-    }
+//     if(!comx.io_Display_){
+//         if(comx.io_HSync_){
+//             scanX ++;
+//             if(scanX > 61){
+//                 drawX++;
+//                 screenPixels[drawX + (drawY*240)] =  colors[comx.io_Color];
+//             }
+//         }
+//         if(comx.io_HSync_ && !HSync_Edge){
+//             scanX = 0;
+//             drawX = 0;
+//             drawY++;
+// //            printf("sx: %u, dx: %u, dy: %u\n", scanX, drawX, drawY);
+//         }
+//     }else{
+//         if(comx.io_Display_ && !Display_Edge){
+//             scanX = 0;
+//             drawX = 0;
+//             drawY = 0;
+//             SDL_UpdateTexture(screen, NULL, screenPixels, 240 * sizeof(Uint32));
+//             sim_draw();
+//             sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
+//             Uint64 ticks = SDL_GetTicks64();
+//             printf("Frame: %i, time:%lu\n", FrameCount, ticks - ticksLast);
+//             ticksLast = ticks;
+// 			screenshot(tmpstr);
+//             // if(FrameCount > 900 && FrameCount < 905){
+//             //     trace=1;
+//             // }else{
+//             //     trace=0;
+//             // }
+//             //if(FrameCount > 904) sim_end();
+//         }
+//     }
+
+
 
     if(FrameCount == 10 && comx.io_KBD_Ready){
             comx.io_KBD_Latch = true;
@@ -212,8 +273,22 @@ void sim_run(){
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
+    doNTSC(comx.io_Sync, comx.io_Pixel);
+    if(!comx.io_VSync_ && VSync_Edge){
+        sim_draw();
+        // vidTime = 0;
+        // memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
+
+        sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
+        Uint64 ticks = SDL_GetTicks64();
+        printf("Frame: %i, time:%lu\n", FrameCount, ticks - ticksLast);
+        ticksLast = ticks;
+        screenshot(tmpstr);
+    }
+
     Display_Edge = comx.io_Display_;
     HSync_Edge = comx.io_HSync_;
+    VSync_Edge = comx.io_VSync_;
     Ready_Edge = comx.io_KBD_Ready;
 
     main_time++;

@@ -1,7 +1,7 @@
 #ifndef SIM_CLASS_H
 #define SIM_CLASS_H
-    #define WINDOW_WIDTH 640
-    #define WINDOW_HEIGHT 480
+    #define WINDOW_WIDTH 832
+    #define WINDOW_HEIGHT 624
 
     //Bit functions
     #define BIT_SET(X, Y) 				*(X) |= (1<<Y)
@@ -13,8 +13,8 @@
 
     void screenshot(const char filename[]);
 
-    void sim_init(Uint32 *p,SDL_Texture *td ,void (*d)());
-    void sim_keyevent(const uint8_t *keystates);
+    void sim_init(int *v, SDL_Texture *td ,void (*d)(), struct CRT *c);
+    void sim_keyevent(int key);
     void sim_run();
     void sim_end();
 #endif
