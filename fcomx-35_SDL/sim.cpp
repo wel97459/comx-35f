@@ -39,6 +39,7 @@ Uint8 Display_Edge=0;
 Uint8 HSync_Edge=0;
 Uint8 VSync_Edge=0;
 Uint8 Ready_Edge=0;
+Uint8 colorBurst=1;
 
 Uint16 drawX, drawY, scanX;
 
@@ -176,16 +177,27 @@ Uint32 colors[]={
     0x00FFFFFF,
 };
 
-void doNTSC(int CompSync, int Video)
+void doNTSC(int CompSync, int Video, int Burst, int Color)
 {	
+    int cc[] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
+	int ccw[] = {WHITE_LEVEL, WHITE_LEVEL + 10, WHITE_LEVEL, WHITE_LEVEL - 10};
+
 	int tt = test;
 	int v = -40;
 	if(CompSync) v=BLANK_LEVEL;
 	if(Video) v=WHITE_LEVEL;
 	while (tt > 0) {
+        colorBurst++;
+        if(Burst) v = cc[(colorBurst + 0) & 3];
+        if(Color > 0) v = ccw[(colorBurst + 0) & 3];
 		sim_crt->analog[vidTime] = v;
 		vidTime = (vidTime+1) % (CRT_INPUT_SIZE);
 		tt--;
+        comx.io_Video = v;
+        comx.io_testing = colorBurst;
+        comx.eval();
+        main_trace++;
+        m_trace->dump (main_trace);
 	}
 //	dih = (dih+1) % dihA;
 	return;
@@ -273,7 +285,7 @@ void sim_run(){
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
-    doNTSC(comx.io_Sync, comx.io_Pixel);
+    doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
     if(!comx.io_VSync_ && VSync_Edge){
         sim_draw();
         // vidTime = 0;
@@ -296,7 +308,7 @@ void sim_run(){
     comx.eval();
 
     #ifdef TRACE
-        if(trace){
+        if(trace && 0){
             main_trace++;
             m_trace->dump (main_trace);
         }
@@ -307,7 +319,7 @@ void sim_run(){
     comx.eval();
 
     #ifdef TRACE
-        if(trace){
+        if(trace && 0){
             main_trace++;
             m_trace->dump (main_trace);
         }

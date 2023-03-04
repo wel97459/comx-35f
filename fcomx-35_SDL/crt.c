@@ -578,7 +578,9 @@ vsync_found:
             int n = sig[i];                   /* mixed with the new sample */
             ccref[i & 3] = p + n;
         }
-        
+
+        printf("Line: %i, Sync: %i, %i, %i, %i\n", line, ccref[0], ccref[1], ccref[2], ccref[3]);
+
         xpos = POSMOD(AV_BEG + v->hsync, CRT_HRES);
         ypos = POSMOD(line + v->vsync, CRT_VRES);
         pos = xpos + ypos * CRT_HRES;

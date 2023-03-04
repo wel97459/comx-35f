@@ -51,10 +51,11 @@ class comx35_test extends Component {
         val Start = in Bool()
         
         val HSync_ = out Bool()
+        val VSync_ = out Bool()
         val Display_ = out Bool()
         val Color = out Bits(3 bits)
         val Pixel = out Bool()
-
+        val Burst = out Bool()
         val Sync = out Bool()
 
         val KBD_Latch = in Bool()
@@ -63,14 +64,18 @@ class comx35_test extends Component {
         val Q = out Bool()
         val Tape_in = in Bool()
         val Sound = out Bits(4 bits)
+        val Video = in UInt(8 bits)
+        val testing = in UInt(8 bits)
     }
 
     //Components
     val vis69 = new VIS.CDP1869()
     val vis70 = new VIS.CDP1870()
     val kbd71 = new VIS.CDP1871()
+
     val clockedArea = new ClockEnableArea(vis70.io.CPUCLK) {
         val CPU = new Spinal1802.Spinal1802()
+        //val CPU = new new1802.new1802()
     }
 
     //Cons
@@ -146,11 +151,12 @@ class comx35_test extends Component {
         io.MWR := clockedArea.CPU.io.MWR
 
         io.HSync_ := vis70.io.HSync_
+        io.VSync_ := vis70.io.VSync_
         io.Display_ := vis70.io.Display_
         io.Pixel := vis70.io.Pixel
         io.Color := vis70.io.Color
         io.Sync := vis70.io.CompSync_
-        
+        io.Burst := vis70.io.Burst
         io.KBD_Ready := kbd71.io.Ready
         io.Q := clockedArea.CPU.io.Q
 
@@ -228,7 +234,7 @@ object comx35_sim {
 
 //Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be reused everywhere
 object ComxSpinalConfig extends SpinalConfig(
-    targetDirectory = ".",
+    targetDirectory = "./fcomx-35_SDL/gen",
     oneFilePerComponent = false,
     defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
 )

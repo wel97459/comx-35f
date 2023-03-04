@@ -5,6 +5,7 @@ import spinal.core._
 class CDP1870 extends Component{
     val io = new Bundle{
         val HSync_ = out Bool()
+        val VSync_ = out Bool()
         val Display_ = out Bool()
         val PreDisplay_ = out Bool()
         val AddSTB_ = out Bool()
@@ -28,6 +29,7 @@ class CDP1870 extends Component{
         val CompSync_ = out Bool()
         val Pixel = out Bool()
         val Color = out Bits(3 bits)
+        val Burst = out Bool()
     }
 
     //Registers
@@ -122,9 +124,10 @@ class CDP1870 extends Component{
     //Outputs
     io.Pixel := PixelShifter(5)
     io.Color := PixelShifter(5) ? ColorOut | BKG
-
+    io.Burst := Burst
     io.CompSync_ := !(HSync ^ VSync)
     io.HSync_ := !HSync
+    io.VSync_ := !VSync
     io.Display_ := !DispOff ?  !VDisplay | True
     io.PreDisplay_ := !DispOff ? !VPreDisplay | True
 

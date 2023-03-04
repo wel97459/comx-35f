@@ -144,6 +144,11 @@ int main(int argc, char *argv[])
 
     sim_init(video, texDisplay, drawCRT, &crt);
     drawCRT();
+    int colorBurst = 1;
+    for(int i =0; i < 10; i++){
+        printf("c: 0x%02X\n", colorBurst);
+        colorBurst = colorBurst << 1 | (colorBurst & 0x8) >> 3;
+    }
 
     do{
         sim_run();
