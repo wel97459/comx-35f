@@ -17,10 +17,10 @@ Uint32 *screenPixels;
 SDL_Texture *screen;
 int *sim_video;
 struct CRT *sim_crt;
-static int vidTime = 0;
+static uint64_t vidTime = 0;
 static int test = 4;
 static int dih = 0;
-static int dihA = 15;
+static int dihA = 1;
 static int dihB = 0;
 
 VerilatedFstC* m_trace;
@@ -39,6 +39,8 @@ Uint8 Display_Edge=0;
 Uint8 HSync_Edge=0;
 Uint8 VSync_Edge=0;
 Uint8 Ready_Edge=0;
+Uint8 Burst_Edge=0;
+Uint8 Video_Last=0;
 Uint8 colorBurst=1;
 
 Uint16 drawX, drawY, scanX;
@@ -137,6 +139,9 @@ void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
 		comx.trace(m_trace, 99);
 		m_trace->open ("simx.fst");
 	#endif
+
+    printf("CRT_INPUT_SIZE: %i\n", CRT_INPUT_SIZE);
+    printf("ns2pos: %u\n", ns2pos(LINE_ns*262UL));
 }
 
 void sim_keyevent(int key){
@@ -176,30 +181,25 @@ Uint32 colors[]={
     0x00FF00FF,
     0x00FFFFFF,
 };
-
+#define COLOR_LEVEL (WHITE_LEVEL - 30)
 void doNTSC(int CompSync, int Video, int Burst, int Color)
 {	
-    int cc[] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
-	int ccw[] = {WHITE_LEVEL, WHITE_LEVEL + 10, WHITE_LEVEL, WHITE_LEVEL - 10};
-
-	int tt = test;
-	int v = -40;
+    int v = -40;
 	if(CompSync) v=BLANK_LEVEL;
 	if(Video) v=WHITE_LEVEL;
-	while (tt > 0) {
-        colorBurst++;
-        if(Burst) v = cc[(colorBurst + 0) & 3];
-        if(Color > 0) v = ccw[(colorBurst + 0) & 3];
-		sim_crt->analog[vidTime] = v;
-		vidTime = (vidTime+1) % (CRT_INPUT_SIZE);
-		tt--;
-        comx.io_Video = v;
-        comx.io_testing = colorBurst;
-        comx.eval();
-        main_trace++;
-        m_trace->dump (main_trace);
-	}
-//	dih = (dih+1) % dihA;
+
+    uint32_t i;
+    for (i = ns2pos(vidTime); i < ns2pos(vidTime+DOT_ns); i++)
+    {
+        sim_crt->analog[i] = v;
+    }
+
+    vidTime+=DOT_ns;
+        // comx.io_Video = v;
+        // comx.io_testing = colorBurst;
+        // comx.eval();
+        // main_trace++;
+        // m_trace->dump (main_trace);
 	return;
 }
 
@@ -285,30 +285,36 @@ void sim_run(){
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
-    doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
+    if(!comx.io_HSync_ && HSync_Edge){
+        dih++;
+    }
+
     if(!comx.io_VSync_ && VSync_Edge){
         sim_draw();
-        // vidTime = 0;
-        // memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
-
         sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
         Uint64 ticks = SDL_GetTicks64();
-        printf("Frame: %i, time:%lu\n", FrameCount, ticks - ticksLast);
+        printf("Frame: %i, time:%lu, dih:%lu\n", FrameCount, ticks - ticksLast, dih);
         ticksLast = ticks;
         screenshot(tmpstr);
+        vidTime = 0;
+        dih = 0;
+        memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
     }
+    doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
 
     Display_Edge = comx.io_Display_;
     HSync_Edge = comx.io_HSync_;
     VSync_Edge = comx.io_VSync_;
     Ready_Edge = comx.io_KBD_Ready;
+    Burst_Edge = comx.io_Burst;
+    Video_Last = comx.io_Video;
 
     main_time++;
     comx.clk = 1;
     comx.eval();
 
     #ifdef TRACE
-        if(trace && 0){
+        if(trace){
             main_trace++;
             m_trace->dump (main_trace);
         }
@@ -319,7 +325,7 @@ void sim_run(){
     comx.eval();
 
     #ifdef TRACE
-        if(trace && 0){
+        if(trace){
             main_trace++;
             m_trace->dump (main_trace);
         }

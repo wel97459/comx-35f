@@ -25,23 +25,23 @@ extern "C" {
  */
 
 /* do bloom emulation (side effect: makes screen have black borders) */
-#define CRT_DO_BLOOM    1
+#define CRT_DO_BLOOM    0
 #define CRT_DO_VSYNC    1  /* look for VSYNC */
 #define CRT_DO_HSYNC    1  /* look for HSYNC */
 /* 0 = vertical  chroma (228 chroma clocks per line) */
 /* 1 = checkered chroma (227.5 chroma clocks per line) */
-#define CRT_DO_CHK_C    0
+#define CRT_DO_CHK_C    1
 
 /* chroma clocks (subcarrier cycles) per line */
-//#if CRT_DO_CHK_C
-//#define CRT_CC_LINE 2275
-//#else
+#if CRT_DO_CHK_C
+#define CRT_CC_LINE 2275
+#else
 /* this will give the 'rainbow' effect in the famous waterfall scene */
 #define CRT_CC_LINE 2280
-//#endif
+#endif
 
 #define CRT_CB_FREQ     4 /* carrier frequency relative to sample rate */
-#define CRT_HRES        ((CRT_CC_LINE * CRT_CB_FREQ / 10)+530) /* horizontal res */
+#define CRT_HRES        ((CRT_CC_LINE * CRT_CB_FREQ)/8) /* horizontal res */
 #define CRT_VRES        262                       /* vertical resolution */
 #define CRT_INPUT_SIZE  (CRT_HRES * CRT_VRES)
 
@@ -63,13 +63,15 @@ extern "C" {
  *      BLANK            SYNC           BLANK          BLANK          BLANK
  * 
  */
+#define DOT_ns 176UL
+#define DOTx6_ns 1058UL
 #define LINE_BEG         0
-#define FP_ns            1500      /* front porch */
-#define SYNC_ns          4700      /* sync tip */
-#define BW_ns            600       /* breezeway */
-#define CB_ns            2500      /* color burst */
-#define BP_ns            1600      /* back porch */
-#define AV_ns            52600     /* active video */
+#define FP_ns            (1*DOTx6_ns)      /* front porch */
+#define SYNC_ns          (4*DOTx6_ns)      /* sync tip */
+#define BW_ns            (1*DOTx6_ns)       /* breezeway */
+#define CB_ns            (3*DOTx6_ns)      /* color burst */
+#define BP_ns            (1*DOTx6_ns)      /* back porch */
+#define AV_ns            (50*DOTx6_ns)     /* active video */
 #define HB_ns            (FP_ns + SYNC_ns + BW_ns + CB_ns + BP_ns) /* h blank */
 /* line duration should be ~63500 ns */
 #define LINE_ns          (FP_ns + SYNC_ns + BW_ns + CB_ns + BP_ns + AV_ns)
@@ -100,6 +102,9 @@ extern "C" {
 #define BLACK_LEVEL      7
 #define BLANK_LEVEL      0
 #define SYNC_LEVEL      -40
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 struct CRT {
     signed char analog[CRT_INPUT_SIZE]; /* sampled at 14.31818 MHz */

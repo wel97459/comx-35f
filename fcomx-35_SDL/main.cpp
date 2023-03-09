@@ -127,7 +127,7 @@ static void draw()
 
 void drawCRT()
 {
-	crt_draw(&crt, 0, 0, 100, 4);
+	crt_draw(&crt, 0, 0, 110, 5);
 	SDL_UpdateTexture(texDisplay, NULL, video, WINDOW_WIDTH * sizeof(Uint32));
 
 	SDL_RenderCopy(renderer, texDisplay, NULL, NULL);
@@ -144,11 +144,6 @@ int main(int argc, char *argv[])
 
     sim_init(video, texDisplay, drawCRT, &crt);
     drawCRT();
-    int colorBurst = 1;
-    for(int i =0; i < 10; i++){
-        printf("c: 0x%02X\n", colorBurst);
-        colorBurst = colorBurst << 1 | (colorBurst & 0x8) >> 3;
-    }
 
     do{
         sim_run();

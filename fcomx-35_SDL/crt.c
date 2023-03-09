@@ -453,8 +453,8 @@ crt_2ntsc(struct CRT *v, struct NTSC_SETTINGS *s)
 }
 
 /* search windows, in samples */
-#define HSYNC_WINDOW 8
-#define VSYNC_WINDOW 8
+#define HSYNC_WINDOW 25
+#define VSYNC_WINDOW 25
 
 extern void
 crt_draw(struct CRT *v, int noise, int roll, int vs, int hs)
@@ -579,7 +579,7 @@ vsync_found:
             ccref[i & 3] = p + n;
         }
 
-        printf("Line: %i, Sync: %i, %i, %i, %i\n", line, ccref[0], ccref[1], ccref[2], ccref[3]);
+        //printf("Line: %i, Sync: %i, %i, %i, %i\n", line, ccref[0], ccref[1], ccref[2], ccref[3]);
 
         xpos = POSMOD(AV_BEG + v->hsync, CRT_HRES);
         ypos = POSMOD(line + v->vsync, CRT_VRES);
@@ -668,7 +668,7 @@ vsync_found:
         
         /* duplicate extra lines */
         ln = v->outw * sizeof(int);
-        for (s = beg + 1; s < (end - 1); s++) {
+        for (s = beg + 1; s < (end); s++) {
             memcpy(v->out + s * v->outw, v->out + (s - 1) * v->outw, ln);
         }
     }
