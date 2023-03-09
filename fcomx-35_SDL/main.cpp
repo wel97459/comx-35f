@@ -19,7 +19,7 @@ Uint32 * pixels = new Uint32[240 * 240];
 
 int *video = NULL;
 static struct CRT crt;
-
+static int roll;
 void SetAlpha(void *pixels){
     union p
     {
@@ -127,16 +127,18 @@ static void draw()
 
 void drawCRT()
 {
-	crt_draw(&crt, 0, 0, 110, 5);
+	crt_draw(&crt, 0, roll, 180, 4);
 	SDL_UpdateTexture(texDisplay, NULL, video, WINDOW_WIDTH * sizeof(Uint32));
 
 	SDL_RenderCopy(renderer, texDisplay, NULL, NULL);
 
     SDL_RenderPresent(renderer);
+    roll+=10;
 }
 
 int main(int argc, char *argv[])
 {
+    roll=0;
     if(initVideo()==0) return -1;
 
     video = (int *) malloc(WINDOW_WIDTH * sizeof(int) * WINDOW_HEIGHT);

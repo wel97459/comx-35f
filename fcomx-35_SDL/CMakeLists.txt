@@ -4,10 +4,10 @@ cmake_minimum_required(VERSION 3.10)
   SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
  #-fprofile-use=default.profdata -fprofile-generate
  #set(MYAPP_PGO "-fprofile-generate") 
- #set(MYAPP_PGO "-fprofile-use=../default.profdata") 
+ #set(MYAPP_PGO "-fprofile-use=./default.profdata") 
  
- #set(MYAPP_PGO "-fprofile-generate=./pgo") 
- #set(MYAPP_PGO "-fprofile-use=./pgo") 
+#set(MYAPP_PGO "-fprofile-generate=./pgo") 
+#set(MYAPP_PGO "-fprofile-use=./pgo") 
 if(NOT "${CMAKE_CXX_STANDARD}")
   set(CMAKE_CXX_STANDARD 11)
 endif()
@@ -38,7 +38,7 @@ add_library(dt_lib SHARED
 )
 
 #verilate(dt_lib SOURCES ../comx35_test.v)
-verilate(dt_lib SOURCES ./gen/comx35_test.v INCLUDE_DIRS "../" TRACE_FST THREADS 1)
+verilate(dt_lib SOURCES ./gen/comx35_test.v INCLUDE_DIRS "../" TRACE_FST)
 
 add_executable(${CMAKE_PROJECT_NAME}
   main.cpp

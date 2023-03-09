@@ -7,8 +7,6 @@
 #include "sim.h"
 #include "crt.h"
 
-#define VL_THREADED 1
-#include <verilated_threads.h>
 #include <verilated_fst_c.h>
 #include "Vcomx35_test.h"
 
@@ -28,7 +26,7 @@ Vcomx35_test comx;
 
 Uint64 main_time=0;
 Uint64 main_trace=0;
-Uint8 trace=1;
+Uint8 trace=0;
 
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
@@ -181,7 +179,10 @@ Uint32 colors[]={
     0x00FF00FF,
     0x00FFFFFF,
 };
-#define COLOR_LEVEL (WHITE_LEVEL - 30)
+#define COLOR_LEVEL (WHITE_LEVEL - 20)
+int cc[4] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
+int cc1[4] = {COLOR_LEVEL, COLOR_LEVEL+(20), COLOR_LEVEL, COLOR_LEVEL-(20)};
+
 void doNTSC(int CompSync, int Video, int Burst, int Color)
 {	
     int v = -40;
@@ -191,15 +192,21 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
     uint32_t i;
     for (i = ns2pos(vidTime); i < ns2pos(vidTime+DOT_ns); i++)
     {
+        if(Burst) v = cc[(i + 0) & 3];
+        if(Color == test) v = BLANK_LEVEL;
+        if(Color == 3) v = cc1[(i + 0) & 3];
+        if(Color == 4) v = cc1[(i + 3) & 3]-30;
+        if(Color == 5) v = cc1[(i + 2) & 3];
+        if(Color == 6) v = cc1[(i + 3) & 3];
         sim_crt->analog[i] = v;
+        comx.io_Video = v;
+        comx.io_testing = colorBurst;
+        comx.eval();
+        main_trace++;
+        m_trace->dump (main_trace);
     }
 
     vidTime+=DOT_ns;
-        // comx.io_Video = v;
-        // comx.io_testing = colorBurst;
-        // comx.eval();
-        // main_trace++;
-        // m_trace->dump (main_trace);
 	return;
 }
 
@@ -273,15 +280,15 @@ void sim_run(){
 
 
 
-    if(FrameCount == 10 && comx.io_KBD_Ready){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    } 
+    // if(FrameCount == 10 && comx.io_KBD_Ready){
+    //         comx.io_KBD_Latch = true;
+    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    // } 
 
-    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    }
+    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+    //         comx.io_KBD_Latch = true;
+    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    // }
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
