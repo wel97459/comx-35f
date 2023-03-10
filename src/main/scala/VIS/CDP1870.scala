@@ -124,7 +124,7 @@ class CDP1870 extends Component{
     //Outputs
     io.Pixel := PixelShifter(5)
     io.Color := PixelShifter(5) ? ColorOut | BKG
-    io.Burst := Burst
+    io.Burst := Burst & !VerticalBlanking
     io.CompSync_ := !(HSync ^ VSync)
     io.HSync_ := !HSync
     io.VSync_ := !VSync
