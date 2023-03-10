@@ -10,16 +10,26 @@
 #include <verilated_fst_c.h>
 #include "Vcomx35_test.h"
 
+#define COLOR_LEVEL (WHITE_LEVEL - 20)
+int cc[4] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
+int cc1[4] = {COLOR_LEVEL, COLOR_LEVEL+(20), COLOR_LEVEL, COLOR_LEVEL-(20)};
+
 void (*sim_draw)();
 Uint32 *screenPixels;
 SDL_Texture *screen;
 int *sim_video;
 struct CRT *sim_crt;
 static uint64_t vidTime = 0;
-static int test = 4;
-static int dih = 0;
-static int dihA = 1;
-static int dihB = 0;
+static uint8_t PhaseOffset = 0;
+struct COLOR_SETTINGS {
+    char *text[8];
+    uint8_t index;
+    int Amplitude[8];
+    uint8_t Phase[8];
+    int PhaseAmp[8];
+};
+
+static COLOR_SETTINGS colors;
 
 VerilatedFstC* m_trace;
 Vcomx35_test comx;
@@ -117,6 +127,31 @@ int loadFile(const char *filename, Uint8 *pointer, const Uint32 len)
     return 0;
 }
 
+void loadColors( char* filename)
+{
+    FILE *f = fopen(filename, "r");
+    if ( f == 0 )
+    {
+        printf( "Could not open file\n" );
+        return;
+    }
+    fread(&colors, sizeof(COLOR_SETTINGS), 1, f);
+    fclose(f);
+};
+
+void storeColors(char* filename)
+{
+    FILE *f = fopen(filename, "w");
+    if ( f == 0 )
+    {
+        printf( "Could not open file\n" );
+        return;
+    }
+    fwrite(&colors, sizeof(COLOR_SETTINGS), 1, f);
+    fclose(f);
+};
+
+
 void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     //screenPixels = p;
     sim_draw = d;
@@ -140,36 +175,49 @@ void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
 
     printf("CRT_INPUT_SIZE: %i\n", CRT_INPUT_SIZE);
     printf("ns2pos: %u\n", ns2pos(LINE_ns*262UL));
+
+    loadColors( "color_settings.dat");
+    memcpy(colors.text, "test2", 6);
+    // memcpy(&colors_new, &colors, sizeof(COLOR_SETTINGS));
+    // storeColors("test.json");
 }
 
 void sim_keyevent(int key){
-    if (key == SDLK_9) {
-        test -= 1;
-        printf("%d\n", test);
+    if (key == SDLK_9 && colors.index > 0) {
+        colors.index -= 1;
+        printf("Index:%i\n", colors.index);
     }
-    if (key == SDLK_0) {
-        test += 1;
-        printf("%d\n", test);
+    if (key == SDLK_0 && colors.index < 8) {
+        colors.index += 1;
+        printf("Index:%i\n", colors.index);
     }
     if (key == SDLK_o) {
-        dihA -= 1;
-        printf("%d\n", dihA);
+        colors.Amplitude[colors.index] -= 1;
+        printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
     }
     if (key == SDLK_p) {
-        dihA += 1;
-        printf("%d\n", dihA);
+        colors.Amplitude[colors.index] += 1;
+        printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
     }
-    if (key == SDLK_k) {
-        dihB -= 1;
-        printf("%d\n", dihB);
+    if (key == SDLK_k && colors.Phase[colors.index] > 0) {
+        colors.Phase[colors.index]-= 1;
+        printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
     }
-    if (key == SDLK_l) {
-        dihB += 1;
-        printf("%d\n", dihB);
+    if (key == SDLK_l && colors.Phase[colors.index] < 4) {
+        colors.Phase[colors.index]+= 1;
+        printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
+    }
+    if (key == SDLK_n) {
+        colors.PhaseAmp[colors.index]-= 1;
+        printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
+    }
+    if (key == SDLK_m) {
+        colors.PhaseAmp[colors.index]+= 1;
+        printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
     }
 }
 
-Uint32 colors[]={
+Uint32 colorsRGB[]={
     0x00000000,
     0x0000FF00,
     0x000000FF,
@@ -179,9 +227,6 @@ Uint32 colors[]={
     0x00FF00FF,
     0x00FFFFFF,
 };
-#define COLOR_LEVEL (WHITE_LEVEL - 20)
-int cc[4] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
-int cc1[4] = {COLOR_LEVEL, COLOR_LEVEL+(20), COLOR_LEVEL, COLOR_LEVEL-(20)};
 
 void doNTSC(int CompSync, int Video, int Burst, int Color)
 {	
@@ -193,11 +238,8 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
     for (i = ns2pos(vidTime); i < ns2pos(vidTime+DOT_ns); i++)
     {
         if(Burst) v = cc[(i + 0) & 3];
-        if(Color == test) v = BLANK_LEVEL;
-        if(Color == 3) v = cc1[(i + 0) & 3];
-        if(Color == 4) v = cc1[(i + 3) & 3]-30;
-        if(Color == 5) v = cc1[(i + 2) & 3];
-        if(Color == 6) v = cc1[(i + 3) & 3];
+        if(Color > 0 && Color < 7) v = (cc1[(i + colors.Phase[Color] + PhaseOffset) & 3]*colors.PhaseAmp[Color])+colors.Amplitude[Color];
+
         sim_crt->analog[i] = v;
         comx.io_Video = v;
         comx.io_testing = colorBurst;
@@ -278,33 +320,26 @@ void sim_run(){
 //         }
 //     }
 
+    if(FrameCount == 10 && comx.io_KBD_Ready){
+            comx.io_KBD_Latch = true;
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    } 
 
-
-    // if(FrameCount == 10 && comx.io_KBD_Ready){
-    //         comx.io_KBD_Latch = true;
-    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    // } 
-
-    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-    //         comx.io_KBD_Latch = true;
-    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    // }
+    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+            comx.io_KBD_Latch = true;
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    }
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
-
-    if(!comx.io_HSync_ && HSync_Edge){
-        dih++;
-    }
 
     if(!comx.io_VSync_ && VSync_Edge){
         sim_draw();
         sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
         Uint64 ticks = SDL_GetTicks64();
-        printf("Frame: %i, time:%lu, dih:%lu\n", FrameCount, ticks - ticksLast, dih);
+        printf("Frame: %i, time:%lu:%lu\n", FrameCount, ticks - ticksLast);
         ticksLast = ticks;
         screenshot(tmpstr);
         vidTime = 0;
-        dih = 0;
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
     }
     doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
@@ -342,6 +377,7 @@ void sim_run(){
 void sim_end()
 {
     printf("Ended.\n");
+    storeColors("color_settings.dat");
     comx.final();
 
     #ifdef TRACE
