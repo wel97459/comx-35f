@@ -224,16 +224,12 @@ eqf(struct EQF *f, int s)
 }
 
 /* infinite impulse response low pass filter for bandlimiting YIQ */
-static struct IIRLP {
-    int c;
-    int h; /* history */
-} iirY, iirI, iirQ;
+static struct IIRLP iirY, iirI, iirQ;
 
 /* freq  - total bandwidth
  * limit - max frequency
  */
-static void
-init_iir(struct IIRLP *f, int freq, int limit)
+void init_iir(struct IIRLP *f, int freq, int limit)
 {
     int rate; /* cycles/pixel rate */
     
@@ -242,8 +238,7 @@ init_iir(struct IIRLP *f, int freq, int limit)
     f->c = EXP_ONE - expx(-((EXP_PI << 9) / rate));
 }
 
-static void
-reset_iir(struct IIRLP *f)
+void reset_iir(struct IIRLP *f)
 {
     f->h = 0;
 }
@@ -251,8 +246,7 @@ reset_iir(struct IIRLP *f)
 /* hi-pass for debugging */
 #define HIPASS 0
 
-static int
-iirf(struct IIRLP *f, int s)
+int iirf(struct IIRLP *f, int s)
 {
     f->h += EXP_MUL(s - f->h, f->c);
 #if HIPASS
@@ -411,7 +405,9 @@ crt_2ntsc(struct CRT *v, struct NTSC_SETTINGS *s)
         reset_iir(&iirY);
         reset_iir(&iirI);
         reset_iir(&iirQ);
-        
+
+        int ph = CC_PHASE(y + yo);
+
         for (x = 0; x < destw; x++) {
             int fy, fi, fq;
             int pA, pB;
@@ -437,7 +433,7 @@ crt_2ntsc(struct CRT *v, struct NTSC_SETTINGS *s)
                 + 39059 * rB - 18022 * gB - 21103 * bB) >> 15;
             fq = (13894 * rA - 34275 * gA + 20382 * bA
                 + 13894 * rB - 34275 * gB + 20382 * bB) >> 15;
-            ph = CC_PHASE(y + yo);
+
             ire = BLACK_LEVEL + v->black_point;
             /* bandlimit Y,I,Q */
             fy = iirf(&iirY, fy);

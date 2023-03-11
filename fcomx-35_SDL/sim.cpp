@@ -12,7 +12,7 @@
 
 #define COLOR_LEVEL (WHITE_LEVEL - 20)
 int cc[4] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
-int cc1[4] = {COLOR_LEVEL, COLOR_LEVEL+(20), COLOR_LEVEL, COLOR_LEVEL-(20)};
+int cc1[4] = {0, 1, 0, -1};
 
 void (*sim_draw)();
 Uint32 *screenPixels;
@@ -20,12 +20,13 @@ SDL_Texture *screen;
 int *sim_video;
 struct CRT *sim_crt;
 static uint64_t vidTime = 0;
-static uint8_t PhaseOffset = 0;
+static int PhaseOffset = 1;
+static struct IIRLP iirY, iirI, iirQ;
 struct COLOR_SETTINGS {
     char *text[8];
     uint8_t index;
     int Amplitude[8];
-    uint8_t Phase[8];
+    int Phase[8];
     int PhaseAmp[8];
 };
 
@@ -177,9 +178,12 @@ void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     printf("ns2pos: %u\n", ns2pos(LINE_ns*262UL));
 
     loadColors( "color_settings.dat");
-    memcpy(colors.text, "test2", 6);
+    memcpy(colors.text, "test3", 6);
     // memcpy(&colors_new, &colors, sizeof(COLOR_SETTINGS));
-    // storeColors("test.json");
+    //storeColors("test.json");
+    init_iir(&iirY, L_FREQ, Y_FREQ);
+    init_iir(&iirI, L_FREQ, I_FREQ);
+    init_iir(&iirQ, L_FREQ, Q_FREQ);
 }
 
 void sim_keyevent(int key){
@@ -192,27 +196,27 @@ void sim_keyevent(int key){
         printf("Index:%i\n", colors.index);
     }
     if (key == SDLK_o) {
-        colors.Amplitude[colors.index] -= 1;
+        colors.Amplitude[colors.index] -= 1000;
         printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
     }
     if (key == SDLK_p) {
-        colors.Amplitude[colors.index] += 1;
+        colors.Amplitude[colors.index] += 1000;
         printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
     }
-    if (key == SDLK_k && colors.Phase[colors.index] > 0) {
-        colors.Phase[colors.index]-= 1;
+    if (key == SDLK_k) {
+        colors.Phase[colors.index]-= 50;
         printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
     }
-    if (key == SDLK_l && colors.Phase[colors.index] < 4) {
-        colors.Phase[colors.index]+= 1;
+    if (key == SDLK_l) {
+        colors.Phase[colors.index]+= 50;
         printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
     }
     if (key == SDLK_n) {
-        colors.PhaseAmp[colors.index]-= 1;
+        colors.PhaseAmp[colors.index]-= 50;
         printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
     }
     if (key == SDLK_m) {
-        colors.PhaseAmp[colors.index]+= 1;
+        colors.PhaseAmp[colors.index]+= 50;
         printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
     }
 }
@@ -230,18 +234,40 @@ Uint32 colorsRGB[]={
 
 void doNTSC(int CompSync, int Video, int Burst, int Color)
 {	
-    int v = -40;
-	if(CompSync) v=BLANK_LEVEL;
-	if(Video) v=WHITE_LEVEL;
+    int ire = -40, fi, fq, fy;
+    int pA;
+    int rA, gA, bA;
+    int rB = 127, gB = 127, bB = 127;
+	if(CompSync) ire=BLANK_LEVEL;
+	if(Video) ire=WHITE_LEVEL;
 
     uint32_t i;
     for (i = ns2pos(vidTime); i < ns2pos(vidTime+DOT_ns); i++)
     {
-        if(Burst) v = cc[(i + 0) & 3];
-        if(Color > 0 && Color < 7) v = (cc1[(i + colors.Phase[Color] + PhaseOffset) & 3]*colors.PhaseAmp[Color])+colors.Amplitude[Color];
+        if(Burst) ire = cc[(i + 0) & 3];
+        
+        if(Color > 0) {
+            ire = BLACK_LEVEL ;
 
-        sim_crt->analog[i] = v;
-        comx.io_Video = v;
+            pA = colorsRGB[Color];
+            bA = (pA >> 16) & 0xff;
+            gA = (pA >>  8) & 0xff;
+            rA = (pA >>  0) & 0xff;
+
+            fy = (19595 * rA + 38470 * gA +  7471 * bA) >> 14;
+            fi = (39059 * rA - 18022 * gA - 21103 * bA) >> 14;
+            fq = (13894 * rA - 34275 * gA + 20382 * bA) >> 14;
+
+            fy = fy;
+            fi = fi * cc1[(i + 0) & 3];
+            fq = fq * cc1[(i + 3) & 3];
+
+            ire += (fy + fi + fq) * (WHITE_LEVEL * 100 / 100) >> 10;;
+            if (ire < 0)   ire = 0;
+            if (ire > 110) ire = 110;
+        }
+        sim_crt->analog[i] = ire;
+        comx.io_Video = ire;
         comx.io_testing = colorBurst;
         comx.eval();
         main_trace++;
@@ -320,15 +346,22 @@ void sim_run(){
 //         }
 //     }
 
-    if(FrameCount == 10 && comx.io_KBD_Ready){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    } 
+    // if(FrameCount == 10 && comx.io_KBD_Ready){
+    //         comx.io_KBD_Latch = true;
+    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    // } 
 
-    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    }
+    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+    //         comx.io_KBD_Latch = true;
+    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    // }
+
+    if(!comx.io_HSync_ && HSync_Edge) {
+        //PhaseOffset = PhaseOffset == 1 ? -1 : 1;
+        reset_iir(&iirY);
+        reset_iir(&iirI);
+        reset_iir(&iirQ);
+    }   
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 

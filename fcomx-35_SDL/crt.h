@@ -156,6 +156,15 @@ extern void crt_2ntsc(struct CRT *v, struct NTSC_SETTINGS *s);
  */
 extern void crt_draw(struct CRT *v, int noise, int roll, int vs, int hs);
 
+struct IIRLP {
+    int c;
+    int h; /* history */
+};
+
+void init_iir(struct IIRLP *f, int freq, int limit);
+void reset_iir(struct IIRLP *f);
+int iirf(struct IIRLP *f, int s);
+
 #ifdef __cplusplus
 }
 #endif
