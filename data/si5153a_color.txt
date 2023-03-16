@@ -1,0 +1,52 @@
+#Do not modify the contents of this file.
+#BEGIN_PROFILE
+#Date = Thursday, March 16, 2023 12:31:59 AM
+#Software version = 6.2.1 - May 13, 2014
+#File version = 3
+#Part number = Si5351A-x-GT
+#XTAL (MHz) = 25.000000000
+#Mode = Automatic
+#PLL A
+# Input Frequency (MHz) = 25.000000000
+# F divider = 1
+# PFD (MHz) = 25.000000000
+# VCO Frequency (MHz) =  687.272640000
+# Feedback Divider = 27  38352/78125
+# Internal Load Cap (pf) = 10
+# SSC disabled
+#PLL B
+# Input Frequency (MHz) = 0.0
+# VCO Frequency (MHz) =  0.0
+# Pull Range (ppm) = 0.0
+#Output Clocks
+#Channel 0
+# Output Frequency (MHz) = 14.318180000
+# Multisynth Output Frequency (MHz) = 14.318180000
+# Multisynth Divider = 48
+# R Divider = 1
+# PLL source = PLLA
+# Initial phase offset (ns) = 0.000
+# Error (ppm) = 0.0000
+# Powered = On
+# Inverted = No
+# Drive Strength = b00
+# Disable State = Low
+# Clock Source = b11
+#Channel 1
+# Powered = Off
+#Channel 2
+# Powered = Off
+#Channel 3
+# Powered = Off
+#Channel 4
+# Powered = Off
+#Channel 5
+# Powered = Off
+#Channel 6
+# Powered = Off
+#Channel 7
+# Powered = Off
+#
+#REGISTER_MAP
+00 00 18 00 00 00 00 00 00 00 00 00 00 00 00 00 4C 80 80 80 80 80 80 80 00 00 31 2D 00 0B BE 10 FF 1A 00 00 00 00 00 00 00 00 00 01 00 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 30 00 D2 60 60 00 C0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0D 00 00 00 00 00 00 00 00 00 00 00
+#END_PROFILE

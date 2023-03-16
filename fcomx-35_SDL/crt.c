@@ -664,7 +664,7 @@ vsync_found:
         
         /* duplicate extra lines */
         ln = v->outw * sizeof(int);
-        for (s = beg + 1; s < (end); s++) {
+        for (s = beg + 1; s < (end+1); s++) {
             memcpy(v->out + s * v->outw, v->out + (s - 1) * v->outw, ln);
         }
     }

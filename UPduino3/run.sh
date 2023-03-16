@@ -1,6 +1,5 @@
 #!/bin/bash
 set -x
-rm -fy top* 
 rm -fy hardware* 
 
 yosys -p "synth_ice40 -top top -json hardware.json" -q ../top.v

@@ -66,6 +66,9 @@ class comx35_test extends Component {
         val Sound = out Bits(4 bits)
         val Video = in UInt(8 bits)
         val testing = in UInt(8 bits)
+        val vI = in UInt(8 bits)
+        val vQ = in UInt(8 bits)
+        val vY = in UInt(8 bits)
     }
 
     //Components

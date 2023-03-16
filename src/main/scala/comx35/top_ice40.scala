@@ -4,7 +4,8 @@ import spinal.lib._
 import spinal.lib.blackbox.lattice.ice40._
 import MySpinalHardware._
 import VIS._
-class top extends Component {
+
+class top_ice40 extends Component {
     val io = new Bundle{
         val reset_ = in Bool()
         val clk_12Mhz = in Bool() //12Mhz CLK
@@ -178,8 +179,8 @@ class top extends Component {
     }
 }
 
-object TopVerilog {
+object Top_ICE40_Verilog {
     def main(args: Array[String]) {
-        SpinalVerilog(new top()).printPruned()
+        SpinalVerilog(new top_ice40()).printPruned()
     }
 }

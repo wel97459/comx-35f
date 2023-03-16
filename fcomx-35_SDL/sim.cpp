@@ -268,7 +268,10 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
         }
         sim_crt->analog[i] = ire;
         comx.io_Video = ire;
-        comx.io_testing = colorBurst;
+        comx.io_vI = fi;
+        comx.io_vQ = fq;
+        comx.io_vY = fy;
+        comx.io_testing = fi + fq;
         comx.eval();
         main_trace++;
         m_trace->dump (main_trace);
@@ -346,15 +349,15 @@ void sim_run(){
 //         }
 //     }
 
-    // if(FrameCount == 10 && comx.io_KBD_Ready){
-    //         comx.io_KBD_Latch = true;
-    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    // } 
+    if(FrameCount == 10 && comx.io_KBD_Ready){
+            comx.io_KBD_Latch = true;
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    } 
 
-    // if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-    //         comx.io_KBD_Latch = true;
-    //         comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
-    // }
+    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
+            comx.io_KBD_Latch = true;
+            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    }
 
     if(!comx.io_HSync_ && HSync_Edge) {
         //PhaseOffset = PhaseOffset == 1 ? -1 : 1;
@@ -369,7 +372,7 @@ void sim_run(){
         sim_draw();
         sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
         Uint64 ticks = SDL_GetTicks64();
-        printf("Frame: %i, time:%lu:%lu\n", FrameCount, ticks - ticksLast);
+        printf("Frame: %i, time:%lu:%lu\n", FrameCount);
         ticksLast = ticks;
         screenshot(tmpstr);
         vidTime = 0;
