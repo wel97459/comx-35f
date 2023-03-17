@@ -15,14 +15,22 @@ case class ecp5_pll() extends BlackBox {
     }
 noIoPrefix()
 }
+case class ecp5_pll1() extends BlackBox {
+    val io = new Bundle {
+        val clkin = in Bool()
+        val clkout0 = out Bool()
+        //val clkout1 = out Bool()
+        val locked = out Bool()
+    }
+noIoPrefix()
+}
 
 class Top_ECP5 extends Component {
     val io = new Bundle{
         val reset_ = in Bool()
         val clk_25Mhz = in Bool() //12Mhz CLK
-        val clk_14Mhz = in Bool()
+        val J9_P1 = in Bool()
         val phyrst_ = out Bool()
-
         val video = out Bits(2 bits)
         val sync = out Bool()
         val burst = out Bits(3 bits)
@@ -37,12 +45,13 @@ class Top_ECP5 extends Component {
     io.phyrst_ := True
 
     //Define clock domains
-    val clk14Domain = ClockDomain.internal(name = "Core14",  frequency = FixedFrequency(14.2857 MHz))
+    val clk14Domain = ClockDomain.internal(name = "Core14",  frequency = FixedFrequency(14.3182 MHz))
     val clk11Domain = ClockDomain.internal(name = "Core11",  frequency = FixedFrequency(11.4286 MHz))
     val clk25Domain = ClockDomain.internal(name = "Core25",  frequency = FixedFrequency(25.0000 MHz))
 
     //Allow clock domain crossing.
     clk14Domain.setSyncronousWith(clk11Domain)
+    clk25Domain.setSyncronousWith(clk11Domain)
 
     //Define PLL
     val PLL = new ecp5_pll()
@@ -52,45 +61,19 @@ class Top_ECP5 extends Component {
     clk25Domain.clock := io.clk_25Mhz
     clk25Domain.reset := !io.reset_
 
-    val Core25 = new ClockingArea(clk25Domain) {
-        var reset = Reg(Bool) init (False)
-        var rstCounter = CounterFreeRun(8750000)
-        when(!PLL.io.locked){
-            rstCounter.clear()
-        }elsewhen(rstCounter.willOverflow){
-            reset := True
-        }
-    }
-
-    //Connect the PLL output of 17.625Mhz to the 17.625MHz clock domain
-    clk14Domain.clock := io.clk_14Mhz
-    clk14Domain.reset := !Core25.reset
-
-    //Connect the internal oscillator output to the 48MHz clock domain
+    clk14Domain.clock := io.J9_P1
     clk11Domain.clock := PLL.io.clkout1
-    clk11Domain.reset := !Core25.reset
 
     val Core11 = new ClockingArea(clk11Domain) {
         val kbd_ready = Reg(Bool()) init(False)
         val area40kHz = new SlowArea(50 kHz, true) {
             val ready = RegNext(kbd_ready) init(False)
             val kbd = new Q10Keyboard()
-            val si = new Si5351("./data/si5351.bin")
 
-            kbd.io.i_hold := !si.io.o_done
+            kbd.io.i_hold := False
 
             kbd.io.i_scl := io.scl
-            si.io.i_scl := io.scl
-            when(!kbd.io.o_scl_write || !si.io.o_scl_write){
-                io.scl := False
-            }
-
             kbd.io.i_sda := io.sda
-            si.io.i_sda := io.sda
-            when(!kbd.io.o_sda_write || !si.io.o_sda_write){
-                io.sda := False
-            }
-
             kbd.io.key_code_stream.ready := ready.rise()
         }
 
@@ -137,7 +120,15 @@ class Top_ECP5 extends Component {
             val rom = new RamInit("./data/comx35.1.3.bin" ,log2Up(0x3FFF))
             val ram = new Ram(log2Up(0x4FFF))
 
-            io.video := comx35.io.Pixel ? B"11" | B"00"
+            io.video := 0
+            when(comx35.io.Color === 7){
+                io.video := 3 
+            }elsewhen(comx35.io.Color === 5 || comx35.io.Color === 3){
+                io.video := 2 
+            }elsewhen(comx35.io.Color === 1 || comx35.io.Color === 6){
+                io.video := 1 
+            }
+
             io.sync := comx35.io.Sync
 
             pram.io.addra := comx35.io.PMA
@@ -180,38 +171,107 @@ class Top_ECP5 extends Component {
             //io.led_red := !pwm.io.PWM
         }
     }
-
     val Core14 = new ClockingArea(clk14Domain) {
         val Color = BufferCC(Core11.areaDiv4.comx35.io.Color, B"000")
         val Burst = BufferCC(Core11.areaDiv4.comx35.io.Burst, False)
         val HSync_ = BufferCC(Core11.areaDiv4.comx35.io.HSync_, False)
 
-        val b = Reg(UInt(2 bits))
-        when(HSync_){
-            b := b + 1;
-        }otherwise{
-            b := 0;
+        val Alive = Reg(UInt(8 bits)) init(0);
+        when(Alive < 255){
+            Alive := Alive + 1;
         }
 
-        val burst = Reg(Bits(3 bits))
+        val burst = Reg(Bits(3 bits)) init(0)
+
+        val b = Reg(UInt(2 bits))
+        b := b + 1;
+
+        val o = U"00"
+        val ob = b+o;
 
 
-        when(Burst || (Color =/= 0 && Color =/= 7)){
-            when(b === 0){
-                burst := B"110"
-            }elsewhen(b === 1){
-                burst := B"011"
-            }elsewhen(b === 2){
-                burst := B"000"
-            }elsewhen(b === 3){
-                burst := B"011"
+        when(Color === 6 || Color === 3){
+            o := 0
+        }elsewhen(Color === 5){ 
+            o := 1
+        }elsewhen(Color === 1 || Color === 4 || Burst){ 
+            o := 2
+        }elsewhen(Color === 2){ 
+            o := 3
+        }
+
+        when(Burst){
+            when(ob === 0){
+                burst := 7
+            }elsewhen(ob === 1){
+                burst := 3
+            }elsewhen(ob === 2){
+                burst := 0
+            }elsewhen(ob === 3){
+                burst := 3
+            }
+        }elsewhen(Color === 1 || Color === 2 || Color === 5 || Color === 6){
+            when(ob === 0){
+                burst := 0
+            }elsewhen(ob === 1){
+                burst := 5
+            }elsewhen(ob === 2){
+                burst := 7
+            }elsewhen(ob === 3){
+                burst := 2
+            }
+        }elsewhen(Color === 3 || Color === 4){
+            when(ob === 0){
+                burst := 5
+            }elsewhen(ob === 1){
+                burst := 5
+            }elsewhen(ob === 2){
+                burst := 1
+            }elsewhen(ob === 3){
+                burst := 1
             }
         }
+
         io.burst := burst
 
         val pwm = new LedGlow(25)
         io.led_red := !pwm.io.led
     }
+    val Core25 = new ClockingArea(clk25Domain) {
+        val kbd_sda_b = BufferCC(Core11.area40kHz.kbd.io.o_sda_write, True)
+        val kbd_scl_b = BufferCC(Core11.area40kHz.kbd.io.o_scl_write, True)
+        val Alive_b = BufferCC(Core14.Alive, U"00000000")
+        val rstSi = False
+        val rst_si = new ResetArea(rstSi, true) {
+            val area40kHz = new SlowArea(50 kHz, true) {
+                val si = new Si5351("./data/si5351.bin")
+                si.io.i_scl := io.scl
+                si.io.i_sda := io.sda
+            }
+        }
+
+        when(!kbd_sda_b || !rst_si.area40kHz.si.io.o_sda_write){
+            io.sda := False
+        }
+        when(!kbd_scl_b || !rst_si.area40kHz.si.io.o_scl_write){
+            io.scl := False
+        }
+
+        var reset = Reg(Bool) init (False)
+        var reset14 = !rst_si.area40kHz.si.io.o_done
+        var rstCounter = CounterFreeRun(12500000)
+        when(!PLL.io.locked && !rst_si.area40kHz.si.io.o_done){
+            rstCounter.clear()
+        }elsewhen(rstCounter.willOverflow){
+            when(Alive_b === 255){
+                reset := True
+            }otherwise{
+                rstSi := True
+            }
+        }
+    }
+    clk14Domain.reset := !Core25.reset14
+    clk11Domain.reset := !Core25.reset
 }
 
 object Top_ECP5_Verilog extends App {

@@ -125,7 +125,7 @@ class comx35_test extends Component {
         kbd71.io.MRD_ := clockedArea.CPU.io.MRD
         kbd71.io.N3_ := vis69.io.N3_
 
-        clockedArea.CPU.io.Wait_n := io.Start
+        clockedArea.CPU.io.Wait_n := True
         clockedArea.CPU.io.Clear_n := io.Start
         clockedArea.CPU.io.EF_n := io.Tape_in ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
         clockedArea.CPU.io.Interrupt_n := INT_FF
