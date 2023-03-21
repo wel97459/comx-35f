@@ -4,17 +4,17 @@
 // cause of this could be from wrong CPHASE/FPHASE parameters
 module ecp5_pll
 (
-    input clkin, // 25 MHz, 0 deg
-    output clkout0, // 14.2857 MHz, 0 deg
-    output clkout1, // 11.4286 MHz, 0 deg
+    input reset, // 0:inactive, 1:reset
+    input clkin, // 14.3184 MHz, 0 deg
+    output clkout0, // 11.344 MHz, 0 deg
     output locked
 );
-(* FREQUENCY_PIN_CLKI="25" *)
-(* FREQUENCY_PIN_CLKOP="14.2857" *)
-(* FREQUENCY_PIN_CLKOS="11.4286" *)
+wire clkfb;
+(* FREQUENCY_PIN_CLKI="14.3184" *)
+(* FREQUENCY_PIN_CLKOS="11.344" *)
 (* ICP_CURRENT="12" *) (* LPF_RESISTOR="8" *) (* MFG_ENABLE_FILTEROPAMP="1" *) (* MFG_GMCREF_SEL="2" *)
 EHXPLLL #(
-        .PLLRST_ENA("DISABLED"),
+        .PLLRST_ENA("ENABLED"),
         .INTFB_WAKE("DISABLED"),
         .STDBY_ENABLE("DISABLED"),
         .DPHASE_SOURCE("DISABLED"),
@@ -22,24 +22,24 @@ EHXPLLL #(
         .OUTDIVIDER_MUXB("DIVB"),
         .OUTDIVIDER_MUXC("DIVC"),
         .OUTDIVIDER_MUXD("DIVD"),
-        .CLKI_DIV(7),
+        .CLKI_DIV(3),
         .CLKOP_ENABLE("ENABLED"),
-        .CLKOP_DIV(40),
-        .CLKOP_CPHASE(20),
+        .CLKOP_DIV(41),
+        .CLKOP_CPHASE(9),
         .CLKOP_FPHASE(0),
         .CLKOS_ENABLE("ENABLED"),
-        .CLKOS_DIV(50),
-        .CLKOS_CPHASE(20),
+        .CLKOS_DIV(69),
+        .CLKOS_CPHASE(0),
         .CLKOS_FPHASE(0),
         .FEEDBK_PATH("CLKOP"),
         .CLKFB_DIV(4)
     ) pll_i (
-        .RST(1'b0),
+        .RST(reset),
         .STDBY(1'b0),
         .CLKI(clkin),
-        .CLKOP(clkout0),
-        .CLKOS(clkout1),
-        .CLKFB(clkout0),
+        .CLKOP(clkfb),
+        .CLKOS(clkout0),
+        .CLKFB(clkfb),
         .CLKINTFB(),
         .PHASESEL0(1'b0),
         .PHASESEL1(1'b0),
