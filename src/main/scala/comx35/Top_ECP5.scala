@@ -159,29 +159,27 @@ class Top_ECP5 extends Component {
     val Core14 = new ClockingArea(clk14Domain) {
         val Color = BufferCC(Core11.areaDiv4.comx35.io.Color, B"000")
         val Burst = BufferCC(Core11.areaDiv4.comx35.io.Burst, False)
-        val HSync_ = BufferCC(Core11.areaDiv4.comx35.io.HSync_, False)
 
         val Alive = Reg(UInt(8 bits)) init(0);
         when(Alive < U"8'hFF"){
             Alive := Alive + 1;
         }
 
+        //0 - Black
+        //1 - Green
+        //2 - Blue
+        //3 - Cyan
+        //4 - Red
+        //5 - Yellow
+        //6 - Magenta
+        //7 - White
 
-            //0 - Black
-            //1 - Green
-            //2 - Blue
-            //3 - Cyan
-            //4 - Red
-            //5 - Yellow
-            //6 - Magenta
-            //7 - White
-
-            io.video := 0
-            when(comx35.io.Color === 7 || comx35.io.Color === 1 || comx35.io.Color === 5 || comx35.io.Color === 3){
-                io.video := 3 
-            }elsewhen(comx35.io.Color === 4 || comx35.io.Color === 2 || comx35.io.Color === 6){
-                io.video := 2 
-            }
+        io.video := 0
+        when(Color === 7 || Color === 1 || Color === 5 || Color === 3){
+            io.video := 3 
+        }elsewhen(Color === 4 || Color === 2 || Color === 6){
+            io.video := 2 
+        }
 
         val burst = Reg(Bits(3 bits)) init(0)
 
