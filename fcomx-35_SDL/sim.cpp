@@ -21,7 +21,6 @@ int *sim_video;
 struct CRT *sim_crt;
 static uint64_t vidTime = 0;
 static int PhaseOffset = 1;
-static struct IIRLP iirY, iirI, iirQ;
 struct COLOR_SETTINGS {
     char *text[8];
     uint8_t index;
@@ -60,8 +59,8 @@ Uint16 FrameCurent = 0;
 Uint64 ticksLast = 0 ;
 char tmpstr[64];
 
-char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
-//char basicStr[]="\r5 i=0\b\b\b";
+//char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
+char basicStr[]="\rcaall(@4401)\r";
 char *keyInput = &basicStr[0];
 
 char ComxKeyboard(char keyCode)
@@ -128,30 +127,19 @@ int loadFile(const char *filename, Uint8 *pointer, const Uint32 len)
     return 0;
 }
 
-void loadColors( char* filename)
+int saveFile(const char *filename, Uint8 *pointer, const Uint32 len)
 {
-    FILE *f = fopen(filename, "r");
-    if ( f == 0 )
+    FILE *fp = fopen(filename, "w+");
+    if ( fp == 0 )
     {
         printf( "Could not open file\n" );
-        return;
+        return -1;
     }
-    fread(&colors, sizeof(COLOR_SETTINGS), 1, f);
-    fclose(f);
-};
+    size_t s = fwrite(pointer, 1, len, fp);
+    fclose(fp);
 
-void storeColors(char* filename)
-{
-    FILE *f = fopen(filename, "w");
-    if ( f == 0 )
-    {
-        printf( "Could not open file\n" );
-        return;
-    }
-    fwrite(&colors, sizeof(COLOR_SETTINGS), 1, f);
-    fclose(f);
-};
-
+    return 0;
+}
 
 void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     //screenPixels = p;
@@ -175,15 +163,6 @@ void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
 	#endif
 
     printf("CRT_INPUT_SIZE: %i\n", CRT_INPUT_SIZE);
-    printf("ns2pos: %u\n", ns2pos(LINE_ns*262UL));
-
-    loadColors( "color_settings.dat");
-    memcpy(colors.text, "test3", 6);
-    // memcpy(&colors_new, &colors, sizeof(COLOR_SETTINGS));
-    //storeColors("test.json");
-    init_iir(&iirY, L_FREQ, Y_FREQ);
-    init_iir(&iirI, L_FREQ, I_FREQ);
-    init_iir(&iirQ, L_FREQ, Q_FREQ);
 }
 
 void sim_keyevent(int key){
@@ -267,14 +246,6 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
             if (ire > 110) ire = 110;
         }
         sim_crt->analog[i] = ire;
-        comx.io_Video = ire;
-        comx.io_vI = fi;
-        comx.io_vQ = fq;
-        comx.io_vY = fy;
-        comx.io_testing = fi + fq;
-        comx.eval();
-        main_trace++;
-        m_trace->dump (main_trace);
     }
 
     vidTime+=DOT_ns;
@@ -314,41 +285,6 @@ void sim_run(){
         FrameCurent = FrameCount + 4;
     }
 
-//     if(!comx.io_Display_){
-//         if(comx.io_HSync_){
-//             scanX ++;
-//             if(scanX > 61){
-//                 drawX++;
-//                 screenPixels[drawX + (drawY*240)] =  colors[comx.io_Color];
-//             }
-//         }
-//         if(comx.io_HSync_ && !HSync_Edge){
-//             scanX = 0;
-//             drawX = 0;
-//             drawY++;
-// //            printf("sx: %u, dx: %u, dy: %u\n", scanX, drawX, drawY);
-//         }
-//     }else{
-//         if(comx.io_Display_ && !Display_Edge){
-//             scanX = 0;
-//             drawX = 0;
-//             drawY = 0;
-//             SDL_UpdateTexture(screen, NULL, screenPixels, 240 * sizeof(Uint32));
-//             sim_draw();
-//             sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
-//             Uint64 ticks = SDL_GetTicks64();
-//             printf("Frame: %i, time:%lu\n", FrameCount, ticks - ticksLast);
-//             ticksLast = ticks;
-// 			screenshot(tmpstr);
-//             // if(FrameCount > 900 && FrameCount < 905){
-//             //     trace=1;
-//             // }else{
-//             //     trace=0;
-//             // }
-//             //if(FrameCount > 904) sim_end();
-//         }
-//     }
-
     if(FrameCount == 10 && comx.io_KBD_Ready){
             comx.io_KBD_Latch = true;
             comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
@@ -359,14 +295,12 @@ void sim_run(){
             comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     }
 
-    if(!comx.io_HSync_ && HSync_Edge) {
-        //PhaseOffset = PhaseOffset == 1 ? -1 : 1;
-        reset_iir(&iirY);
-        reset_iir(&iirI);
-        reset_iir(&iirQ);
-    }   
-
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
+
+    if(FrameCount == 84 && Ready_Edge && !comx.io_KBD_Ready){
+            loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/move_shape/move_shape.comx", &ram[0x401], 0x8000);
+            saveFile("../data/debug_ram.bin", ram, 0x8000);
+    } 
 
     if(!comx.io_VSync_ && VSync_Edge){
         sim_draw();
@@ -413,7 +347,6 @@ void sim_run(){
 void sim_end()
 {
     printf("Ended.\n");
-    storeColors("color_settings.dat");
     comx.final();
 
     #ifdef TRACE
