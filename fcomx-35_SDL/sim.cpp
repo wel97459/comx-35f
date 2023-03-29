@@ -5,19 +5,20 @@
 #include <pthread.h>
 #include <thread>
 #include "sim.h"
-#include "crt.h"
+#include "crt_core.h"
 
 #include <verilated_fst_c.h>
 #include "Vcomx35_test.h"
 
 #define COLOR_LEVEL (WHITE_LEVEL - 20)
-int cc[4] = {BLANK_LEVEL, BURST_LEVEL, BLANK_LEVEL, -BURST_LEVEL};
-int cc1[4] = {0, 1, 0, -1};
+int ccmodI[CRT_CC_SAMPLES]; /* color phase for mod */
+int ccmodQ[CRT_CC_SAMPLES]; /* color phase for mod */
+int ccburst[CRT_CC_SAMPLES]; /* color phase for burst */
 
 void (*sim_draw)();
 Uint32 *screenPixels;
 SDL_Texture *screen;
-int *sim_video;
+unsigned char *sim_video;
 struct CRT *sim_crt;
 static uint64_t vidTime = 0;
 static int PhaseOffset = 1;
@@ -36,7 +37,7 @@ Vcomx35_test comx;
 
 Uint64 main_time=0;
 Uint64 main_trace=0;
-Uint8 trace=0;
+Uint8 trace=1;
 
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
@@ -141,7 +142,21 @@ int saveFile(const char *filename, Uint8 *pointer, const Uint32 len)
     return 0;
 }
 
-void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
+void genIQ()
+{
+    int sn, cs, n;
+    for (int x = 0; x < CRT_CC_SAMPLES; x++) {
+        n = x * (360 / CRT_CC_SAMPLES);
+        crt_sincos14(&sn, &cs, (n + 33) * 8192 / 180);
+        ccburst[x] = sn >> 10;
+        crt_sincos14(&sn, &cs, n * 8192 / 180);
+        ccmodI[x] = sn >> 10;
+        crt_sincos14(&sn, &cs, (n - 90) * 8192 / 180);
+        ccmodQ[x] = sn >> 10;
+    }
+}
+
+void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     //screenPixels = p;
     sim_draw = d;
     screen = td;
@@ -152,7 +167,7 @@ void sim_init(int *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     sim_draw();
 
     printf("Started.\n");
-
+    genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
 
 	#ifdef TRACE
@@ -221,9 +236,11 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
 	if(Video) ire=WHITE_LEVEL;
 
     uint32_t i;
+    int xoff;
     for (i = ns2pos(vidTime); i < ns2pos(vidTime+DOT_ns); i++)
     {
-        if(Burst) ire = cc[(i + 0) & 3];
+        xoff = i % CRT_CC_SAMPLES;
+        if(Burst) ire = ccburst[(i + 0) & 3];
         
         if(Color > 0) {
             ire = BLACK_LEVEL ;
@@ -238,10 +255,9 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
             fq = (13894 * rA - 34275 * gA + 20382 * bA) >> 14;
 
             fy = fy;
-            fi = fi * cc1[(i + 0) & 3];
-            fq = fq * cc1[(i + 3) & 3];
-
-            ire += (fy + fi + fq) * (WHITE_LEVEL * 100 / 100) >> 10;;
+            fi = fi * ccmodI[xoff] >> 4;
+            fq = fq * ccmodQ[xoff] >> 4;
+            ire += (fy + fi + fq) * (WHITE_LEVEL * 100 / 100) >> 10;
             if (ire < 0)   ire = 0;
             if (ire > 110) ire = 110;
         }
@@ -259,13 +275,13 @@ void sim_run(){
     if (comx.io_MRD == false && comx.io_Addr16 < 0x4000) {
         comx.io_DataIn = rom[comx.io_Addr16 & 0x3fff];
     } else if (comx.io_MRD == false && comx.io_Addr16 >= 0x4000 && comx.io_Addr16 < 0xC000) {
-        comx.io_DataIn = ram[comx.io_Addr16 & 0x7fff];
+        comx.io_DataIn = ram[(comx.io_Addr16 & 0x7fff) - 0x4000];
     } else {
         comx.io_DataIn = 0x00;
     }
     
     if (comx.io_MWR == false && comx.io_Addr16 > 0x3fff && comx.io_Addr16 < 0xC000) {
-        ram[comx.io_Addr16 & 0x7fff] = comx.io_DataOut;
+        ram[(comx.io_Addr16 & 0x7fff) - 0x4000] = comx.io_DataOut;
     }
 
     if(comx.io_PMWR_== false){
@@ -297,10 +313,6 @@ void sim_run(){
 
     if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
 
-    if(FrameCount == 84 && Ready_Edge && !comx.io_KBD_Ready){
-            loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/move_shape/move_shape.comx", &ram[0x401], 0x8000);
-            saveFile("../data/debug_ram.bin", ram, 0x8000);
-    } 
 
     if(!comx.io_VSync_ && VSync_Edge){
         sim_draw();
@@ -311,6 +323,14 @@ void sim_run(){
         screenshot(tmpstr);
         vidTime = 0;
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
+        if(FrameCount == 84){
+                loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/move_shape/move_shape.comx", &ram[0x401], 0x8000);
+                saveFile("../data/debug_ram.bin", ram, 0x8000);
+        } 
+        if(FrameCount == 160){
+            saveFile("../data/debug_ram_CA.bin", cram, 0x400);
+            saveFile("../data/debug_ram_PA.bin", pram, 0x400);
+        } 
     }
     doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
 

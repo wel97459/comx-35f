@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include "sim.h"
-#include "crt.h"
+#include "crt_core.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
@@ -17,7 +17,7 @@ SDL_Rect texDisplayDest;
 
 Uint32 * pixels = new Uint32[240 * 240];
 
-int *video = NULL;
+unsigned char *video = NULL;
 static struct CRT crt;
 static int roll;
 void SetAlpha(void *pixels){
@@ -127,7 +127,7 @@ static void draw()
 
 void drawCRT()
 {
-	crt_draw(&crt, 0, roll, 180, 4);
+	crt_demodulate(&crt, 0);
 	SDL_UpdateTexture(texDisplay, NULL, video, WINDOW_WIDTH * sizeof(Uint32));
 
 	SDL_RenderCopy(renderer, texDisplay, NULL, NULL);
@@ -141,10 +141,13 @@ int main(int argc, char *argv[])
     roll=0;
     if(initVideo()==0) return -1;
 
-    video = (int *) malloc(WINDOW_WIDTH * sizeof(int) * WINDOW_HEIGHT);
-    crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, video);
+    video = (unsigned char *) malloc((WINDOW_WIDTH * WINDOW_HEIGHT) * sizeof(int));
+    crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, CRT_PIX_FORMAT_RGBA, video);
 
     sim_init(video, texDisplay, drawCRT, &crt);
+    crt.blend = 0;
+    crt.scanlines = 1;
+
     drawCRT();
 
     do{

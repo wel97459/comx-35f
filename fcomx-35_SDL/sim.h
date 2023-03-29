@@ -13,7 +13,7 @@
 
     void screenshot(const char filename[]);
 
-    void sim_init(int *v, SDL_Texture *td ,void (*d)(), struct CRT *c);
+    void sim_init(unsigned char *v, SDL_Texture *td ,void (*d)(), struct CRT *c);
     void sim_keyevent(int key);
     void sim_run();
     void sim_end();

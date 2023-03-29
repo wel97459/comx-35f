@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.10)
   SET (CMAKE_C_COMPILER   "/usr/bin/clang")
   SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
  #-fprofile-use=default.profdata -fprofile-generate
- #set(MYAPP_PGO "-fprofile-generate") 
- #set(MYAPP_PGO "-fprofile-use=./default.profdata") 
+#set(MYAPP_PGO "-fprofile-generate") 
+#set(MYAPP_PGO "-fprofile-use=./default.profdata") 
  
 #set(MYAPP_PGO "-fprofile-generate=./pgo") 
 #set(MYAPP_PGO "-fprofile-use=./pgo") 
@@ -43,7 +43,8 @@ verilate(dt_lib SOURCES ./gen/comx35_test.v INCLUDE_DIRS "../" TRACE_FST)
 add_executable(${CMAKE_PROJECT_NAME}
   main.cpp
   sim.cpp
-  crt.c
+  crt_core.c
+  crt_ntsc.c
 )
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS TRACE)
