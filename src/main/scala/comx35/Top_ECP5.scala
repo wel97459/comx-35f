@@ -6,6 +6,7 @@ import MySpinalHardware._
 import VIS._
 import spinal.lib.memory.sdram.xdr.Core
 
+import comx35.Config_ECP5
 case class ecp5_pll() extends BlackBox {
     val io = new Bundle {
         val reset = in Bool()
@@ -30,6 +31,9 @@ class Top_ECP5 extends Component {
 
         val Dial = in Bits(4 bits)
         //val pwm_sound = out Bool()
+        val serial_out = out Bool()
+        val serial_in = in Bool()
+
         val led_red = out Bool()
     }
     noIoPrefix()
@@ -239,7 +243,7 @@ class Top_ECP5 extends Component {
         val rstSi = False
         val SkipOSC = Reg(Bool()) init(False)
         val area40kHz = new SlowArea(50 kHz, true) {
-            val si = new Si5351("./data/si5351.bin")
+            val si = new Si5351("./data/si5351_14.318.bin")
             si.io.i_scl := io.scl
             si.io.i_sda := io.sda
             si.io.i_skip := !SkipOSC
@@ -260,6 +264,12 @@ class Top_ECP5 extends Component {
             }
         }
 
+        val pro = new ProgrammingInterface(9600)
+        io.serial_out := pro.io.UartTX
+        pro.io.UartRX := io.serial_in
+        pro.io.FlagIn := 0x00
+        pro.io.RamInterface.DataIn := 0x00
+
         when(!kbd_sda_b || !area40kHz.si.io.o_sda_write){
             io.sda := False
         }
@@ -269,7 +279,7 @@ class Top_ECP5 extends Component {
 
         var reset = Reg(Bool()) init (False)
         var rstCounter = CounterFreeRun(2500000)
-        when(!PLL.io.locked){
+        when(!PLL.io.locked && pro.io.FlagOut(0)){
             rstCounter.clear()
             reset := False
         }elsewhen(rstCounter.willOverflow){

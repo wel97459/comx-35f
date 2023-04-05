@@ -28,7 +28,7 @@ case class Memory(Size: Int) {
     }
 }
 
-class comx35_test extends Component {
+class comx35_test() extends Component {
     val io = new Bundle {
         val Addr16 = out Bits(16 bit)
         val DataOut = out Bits(8 bit)
@@ -172,6 +172,28 @@ object comx35_sim {
     def main(args: Array[String]) {
         SimConfig.withWave.compile{
             val dut = new comx35_test()
+            dut.clockedArea.CPU.OP.simPublic();
+            dut.clockedArea.CPU.io.Addr16.simPublic();
+            dut.clockedArea.CPU.io.MWR.simPublic();
+            dut.clockedArea.CPU.io.MRD.simPublic();
+            dut.clockedArea.CPU.P.simPublic()
+            dut.clockedArea.CPU.D.simPublic()
+            dut.clockedArea.CPU.R(0).simPublic()
+            dut.clockedArea.CPU.R(1).simPublic()
+            dut.clockedArea.CPU.R(2).simPublic()
+            dut.clockedArea.CPU.R(3).simPublic()
+            dut.clockedArea.CPU.R(4).simPublic()
+            dut.clockedArea.CPU.R(5).simPublic()
+            dut.clockedArea.CPU.R(6).simPublic()
+            dut.clockedArea.CPU.R(7).simPublic()
+            dut.clockedArea.CPU.R(8).simPublic()
+            dut.clockedArea.CPU.R(9).simPublic()
+            dut.clockedArea.CPU.R(10).simPublic()
+            dut.clockedArea.CPU.R(11).simPublic()
+            dut.clockedArea.CPU.R(12).simPublic()
+            dut.clockedArea.CPU.R(13).simPublic()
+            dut.clockedArea.CPU.R(14).simPublic()
+            dut.clockedArea.CPU.R(15).simPublic()
             dut
         }.doSim { dut =>
             //Fork a process to generate the reset and the clock on the dut
@@ -191,46 +213,46 @@ object comx35_sim {
             //val trace = new TraceEmma("verification\\out.log")
 
             var c = 0;
-            val loop = new Breaks;
-            loop.breakable {
-                while (true) {
-                    dut.clockDomain.waitRisingEdge()
+            // val loop = new Breaks;
+            // loop.breakable {
+            //     while (true) {
+            //         dut.clockDomain.waitRisingEdge()
 
-                    if (dut.io.MRD.toBoolean == false && dut.io.Addr16.toInt < 0xC000) {
-                        dut.io.DataIn #= ram.read(dut.io.Addr16.toInt)
-                    } else {
-                        dut.io.DataIn #= 0x00
-                    }
+            //         if (dut.io.MRD.toBoolean == false && dut.io.Addr16.toInt < 0xC000) {
+            //             dut.io.DataIn #= ram.read(dut.io.Addr16.toInt)
+            //         } else {
+            //             dut.io.DataIn #= 0x00
+            //         }
 
-                    if (dut.io.MWR.toBoolean == false && dut.io.Addr16.toInt > 0x3fff && dut.io.Addr16.toInt < 0xC000) {
-                        ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
-                    }
+            //         if (dut.io.MWR.toBoolean == false && dut.io.Addr16.toInt > 0x3fff && dut.io.Addr16.toInt < 0xC000) {
+            //             ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
+            //         }
 
-                    if(dut.io.PMWR_.toBoolean == false){
-                        pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
-                    }
+            //         if(dut.io.PMWR_.toBoolean == false){
+            //             pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
+            //         }
                     
-                    if(dut.io.CMWR_.toBoolean == false){
-                        cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
-                    }
+            //         if(dut.io.CMWR_.toBoolean == false){
+            //             cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
+            //         }
                     
-                    dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
-                    dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
+            //         dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
+            //         dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
 
-                    if(c == 5000){
-                        dut.io.KBD_KeyCode #= 0x80
-                        dut.io.KBD_Latch #= true
-                    }else{
-                        dut.io.KBD_KeyCode #= 0x00
-                        dut.io.KBD_Latch #= false
-                    }
+            //         if(c == 5000){
+            //             dut.io.KBD_KeyCode #= 0x80
+            //             dut.io.KBD_Latch #= true
+            //         }else{
+            //             dut.io.KBD_KeyCode #= 0x00
+            //             dut.io.KBD_Latch #= false
+            //         }
 
-                    c += 1
-                    if(c > 999999){
-                        loop.break;
-                    }
-                }
-            }
+            //         c += 1
+            //         if(c > 999999){
+            //             loop.break;
+            //         }
+            //     }
+            // }
         }
     }
 }
@@ -245,6 +267,28 @@ object ComxSpinalConfig extends SpinalConfig(
 //Generate the MyTopLevel's Verilog using the above custom configuration.
 object ComxGen {
     def main(args: Array[String]) {
-        ComxSpinalConfig.generateVerilog(new comx35_test).printPruned
+
+        ComxSpinalConfig.generateVerilog({
+            val dut = new comx35_test();
+            dut.clockedArea.CPU.OP.simPublic();
+            dut.clockedArea.CPU.D.simPublic()
+            dut.clockedArea.CPU.R(0).simPublic()
+            dut.clockedArea.CPU.R(1).simPublic()
+            dut.clockedArea.CPU.R(2).simPublic()
+            dut.clockedArea.CPU.R(3).simPublic()
+            dut.clockedArea.CPU.R(4).simPublic()
+            dut.clockedArea.CPU.R(5).simPublic()
+            dut.clockedArea.CPU.R(6).simPublic()
+            dut.clockedArea.CPU.R(7).simPublic()
+            dut.clockedArea.CPU.R(8).simPublic()
+            dut.clockedArea.CPU.R(9).simPublic()
+            dut.clockedArea.CPU.R(10).simPublic()
+            dut.clockedArea.CPU.R(11).simPublic()
+            dut.clockedArea.CPU.R(12).simPublic()
+            dut.clockedArea.CPU.R(13).simPublic()
+            dut.clockedArea.CPU.R(14).simPublic()
+            dut.clockedArea.CPU.R(15).simPublic()
+            dut
+        }).printPruned
     }
 }

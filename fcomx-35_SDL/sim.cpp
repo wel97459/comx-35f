@@ -6,9 +6,9 @@
 #include <thread>
 #include "sim.h"
 #include "crt_core.h"
-
 #include <verilated_fst_c.h>
-#include "Vcomx35_test.h"
+#include "Vcomx35_test__Syms.h"
+
 
 #define COLOR_LEVEL (WHITE_LEVEL - 20)
 int ccmodI[CRT_CC_SAMPLES]; /* color phase for mod */
@@ -33,11 +33,12 @@ struct COLOR_SETTINGS {
 static COLOR_SETTINGS colors;
 
 VerilatedFstC* m_trace;
-Vcomx35_test comx;
+Vcomx35_test__Syms *comx_Syms;
+Vcomx35_test *comx;
 
 Uint64 main_time=0;
 Uint64 main_trace=0;
-Uint8 trace=1;
+Uint8 trace=0;
 
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
@@ -50,6 +51,11 @@ Uint8 VSync_Edge=0;
 Uint8 Ready_Edge=0;
 Uint8 Burst_Edge=0;
 Uint8 Video_Last=0;
+Uint8 MW_Last=0;
+Uint8 MR_Last=0;
+Uint8 P_Last=0;
+Uint16 R3_Last=0;
+Uint16 ADDR_Last=0;
 Uint8 colorBurst=1;
 
 Uint16 drawX, drawY, scanX;
@@ -169,11 +175,13 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     printf("Started.\n");
     genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
+    comx = new Vcomx35_test();
+    comx_Syms = comx->vlSymsp;
 
 	#ifdef TRACE
 		Verilated::traceEverOn(true);
 		m_trace = new VerilatedFstC;
-		comx.trace(m_trace, 99);
+		comx->trace(m_trace, 99);
 		m_trace->open ("simx.fst");
 	#endif
 
@@ -269,81 +277,103 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
 }
 
 void sim_run(){
-    comx.reset = !(main_time>10);
-    comx.io_Start = (main_time>15);
+    comx->reset = !(main_time>10);
+    comx->io_Start = (main_time>15);
 
-    if (comx.io_MRD == false && comx.io_Addr16 < 0x4000) {
-        comx.io_DataIn = rom[comx.io_Addr16 & 0x3fff];
-    } else if (comx.io_MRD == false && comx.io_Addr16 >= 0x4000 && comx.io_Addr16 < 0xC000) {
-        comx.io_DataIn = ram[(comx.io_Addr16 & 0x7fff) - 0x4000];
+    if (comx->io_MRD == false && comx->io_Addr16 < 0x4000) {
+        comx->io_DataIn = rom[comx->io_Addr16 & 0x3fff];
+    } else if (comx->io_MRD == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
+        comx->io_DataIn = ram[(comx->io_Addr16 & 0x7fff) - 0x4000];
     } else {
-        comx.io_DataIn = 0x00;
+        comx->io_DataIn = 0x00;
     }
     
-    if (comx.io_MWR == false && comx.io_Addr16 > 0x3fff && comx.io_Addr16 < 0xC000) {
-        ram[(comx.io_Addr16 & 0x7fff) - 0x4000] = comx.io_DataOut;
+    if (comx->io_MWR == false && comx->io_Addr16 > 0x3fff && comx->io_Addr16 < 0xC000) {
+        ram[(comx->io_Addr16 & 0x7fff) - 0x4000] = comx->io_DataOut;
     }
 
-    if(comx.io_PMWR_== false){
-        pram[comx.io_PMA] = comx.io_PMD_Out;
+    if(comx->io_PMWR_== false){
+        pram[comx->io_PMA] = comx->io_PMD_Out;
     }
     
-    if(comx.io_CMWR_ == false){
-        cram[comx.io_CMA] = comx.io_CMD_Out;
+    if(comx->io_CMWR_ == false){
+        cram[comx->io_CMA] = comx->io_CMD_Out;
     }
 
-    comx.io_PMD_In = pram[comx.io_PMA];
-    comx.io_CMD_In = cram[comx.io_CMA];
+    comx->io_PMD_In = pram[comx->io_PMA];
+    comx->io_CMD_In = cram[comx->io_CMA];
 
-    if(!comx.io_KBD_Ready){
-        comx.io_KBD_Latch = false;
-        comx.io_KBD_KeyCode = 0x00;
+    if(!comx->io_KBD_Ready){
+        comx->io_KBD_Latch = false;
+        comx->io_KBD_KeyCode = 0x00;
         FrameCurent = FrameCount + 4;
     }
 
-    if(FrameCount == 10 && comx.io_KBD_Ready){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    if(FrameCount == 10 && comx->io_KBD_Ready){
+            comx->io_KBD_Latch = true;
+            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     } 
 
-    if(FrameCount >= 84 && FrameCount > FrameCurent && comx.io_KBD_Ready && *keyInput != 0x00){
-            comx.io_KBD_Latch = true;
-            comx.io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+    if(FrameCount >= 84 && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
+            comx->io_KBD_Latch = true;
+            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     }
 
-    if(Ready_Edge && !comx.io_KBD_Ready) keyInput++;
+    if(Ready_Edge && !comx->io_KBD_Ready) keyInput++;
 
 
-    if(!comx.io_VSync_ && VSync_Edge){
+    if(!comx->io_VSync_ && VSync_Edge){
         sim_draw();
         sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
         Uint64 ticks = SDL_GetTicks64();
-        printf("Frame: %i, time:%lu:%lu\n", FrameCount);
+        //printf("Frame: %i\n", FrameCount);
         ticksLast = ticks;
         screenshot(tmpstr);
         vidTime = 0;
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
+
         if(FrameCount == 84){
-                loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/move_shape/move_shape.comx", &ram[0x401], 0x8000);
-                saveFile("../data/debug_ram.bin", ram, 0x8000);
+            loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/main.comx", &ram[0x401], 0x8000);
+            saveFile("../data/debug_ram.bin", ram, 0x8000);
         } 
         if(FrameCount == 160){
             saveFile("../data/debug_ram_CA.bin", cram, 0x400);
             saveFile("../data/debug_ram_PA.bin", pram, 0x400);
         } 
     }
-    doNTSC(comx.io_Sync, comx.io_Pixel, comx.io_Burst, comx.io_Color);
-
-    Display_Edge = comx.io_Display_;
-    HSync_Edge = comx.io_HSync_;
-    VSync_Edge = comx.io_VSync_;
-    Ready_Edge = comx.io_KBD_Ready;
-    Burst_Edge = comx.io_Burst;
-    Video_Last = comx.io_Video;
-
+    doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
+    if(trace){
+        if(P_Last != comx_Syms->TOP__comx35_test__clockedArea_CPU.__Vdly__P)
+        {
+            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 5 || comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 4) R3_Last=comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3;
+            if(P_Last == 5)printf("Cret: 0x%04x->0x%04x\n", R3_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3);
+            if(P_Last == 4)printf("Call: 0x%04x->0x%04x\n",R3_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3);
+            if(P_Last == 4 || P_Last == 5)printf("\tR2: 0x%04x\n\n", comx_Syms->TOP__comx35_test__clockedArea_CPU.R_2);
+        }
+        if(MW_Last < comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR){
+            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 > 0xbd00 && comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 <= 0xbdff){
+                printf("0x%04X: Write: 0x%04x = 0x%02x\n", ADDR_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16, comx_Syms->TOP__comx35_test__clockedArea_CPU.D);
+            }
+        }
+        if(MR_Last < comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD){
+            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 > 0xbd00 && comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 <= 0xbdff){
+                printf("0x%04X: Read: 0x%04x = 0x%02x\n", ADDR_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16, comx_Syms->TOP__comx35_test__clockedArea_CPU.D);
+            }
+            ADDR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16;
+        }
+    }
+    Display_Edge = comx->io_Display_;
+    HSync_Edge = comx->io_HSync_;
+    VSync_Edge = comx->io_VSync_;
+    Ready_Edge = comx->io_KBD_Ready;
+    Burst_Edge = comx->io_Burst;
+    Video_Last = comx->io_Video;
+    P_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.P;
+    MW_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR;
+    MR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD;
     main_time++;
-    comx.clk = 1;
-    comx.eval();
+    comx->clk = 1;
+    comx->eval();
 
     #ifdef TRACE
         if(trace){
@@ -353,8 +383,8 @@ void sim_run(){
     #endif
 
     main_time++;
-    comx.clk = 0;
-    comx.eval();
+    comx->clk = 0;
+    comx->eval();
 
     #ifdef TRACE
         if(trace){
@@ -367,7 +397,7 @@ void sim_run(){
 void sim_end()
 {
     printf("Ended.\n");
-    comx.final();
+    comx->final();
 
     #ifdef TRACE
         m_trace->close();

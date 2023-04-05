@@ -5,7 +5,8 @@ import spinal.lib.blackbox.lattice.ice40._
 import MySpinalHardware._
 import VIS._
 
-class top_ice40 extends Component {
+import comx35.Config_ice40
+class Top_ice40 extends Component {
     val io = new Bundle{
         val reset_ = in Bool()
         val clk_12Mhz = in Bool() //12Mhz CLK
@@ -23,12 +24,15 @@ class top_ice40 extends Component {
         val scl = inout(Analog(Bool()))
         val sda = inout(Analog(Bool()))
 
+        val serial_out = out Bool()
+        val serial_in = in Bool()
+
         val pwm_sound = out Bool()
         val led_red = out Bool()
     }
     noIoPrefix()
 
-    val clk22Domain = ClockDomain.internal(name = "Core22",  frequency = FixedFrequency(44.25 MHz))
+    val clk44Domain = ClockDomain.internal(name = "Core44",  frequency = FixedFrequency(44.25 MHz))
 
     //PLL Settings for 22.500MHz
     val PLL_CONFIG = SB_PLL40_PAD_CONFIG(
@@ -46,9 +50,10 @@ class top_ice40 extends Component {
     PLL.REFERENCECLK := io.clk_12Mhz
 
     //Connect the PLL output of 22.500Mhz to the 22.500MHz clock domain
-    clk22Domain.clock := PLL.PLLOUTGLOBAL
-    clk22Domain.reset := !io.reset_
-    val Core22 = new ClockingArea(clk22Domain) {
+    clk44Domain.clock := PLL.PLLOUTGLOBAL
+    clk44Domain.reset := !io.reset_
+    val Core44 = new ClockingArea(clk44Domain) {
+
         var reset = Reg(Bool) init (False)
         var rstCounter = CounterFreeRun(100)
 
@@ -56,12 +61,23 @@ class top_ice40 extends Component {
             reset := True
         }
 
+        val pro = new ProgrammingInterface(9600)
+        io.serial_out := pro.io.UartTX
+        pro.io.UartRX := io.serial_in
+        pro.io.FlagIn := 0x00
+        pro.io.RamInterface.DataIn := 0x00
+
+        when(pro.io.FlagOut(0)){
+            reset := False
+            rstCounter.clear()
+        }
+
         val areaRst = new ResetArea(!reset, false) {
             val kbd_ready = Reg(Bool()) init(False)
             val area40kHz = new SlowArea(50 kHz) {
                 val ready = RegNext(kbd_ready) init(False)
                 val kbd = new Q10Keyboard()
-
+                kbd.io.i_hold := False;
                 kbd.io.i_scl := io.scl
                 when(!kbd.io.o_scl_write){
                     io.scl := False
@@ -169,6 +185,7 @@ class top_ice40 extends Component {
                         wea := comx35.io.MWR.rise()
                         ram_data_in := comx35.io.DataOut
                     }
+
                     val pwm = new PWM_Sound()
                     pwm.io.Sound := (comx35.io.Sound | ((comx35.io.Q ^ Tape_in) ? B"1111" | B"0000")) ## B"0"
                     io.pwm_sound := pwm.io.PWM
@@ -179,8 +196,6 @@ class top_ice40 extends Component {
     }
 }
 
-object Top_ICE40_Verilog {
-    def main(args: Array[String]) {
-        SpinalVerilog(new top_ice40()).printPruned()
-    }
+object Top_ice40_Verilog extends App {
+  Config_ice40.spinal.generateVerilog(new Top_ice40())
 }

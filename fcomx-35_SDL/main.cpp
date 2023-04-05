@@ -145,8 +145,8 @@ int main(int argc, char *argv[])
     crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, CRT_PIX_FORMAT_RGBA, video);
 
     sim_init(video, texDisplay, drawCRT, &crt);
-    crt.blend = 0;
-    crt.scanlines = 1;
+    crt.blend = 1;
+    crt.scanlines = 0;
 
     drawCRT();
 
