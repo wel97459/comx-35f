@@ -3,6 +3,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.blackbox.lattice.ice40._
 import MySpinalHardware._
+import DSPs_SpinalHDL._
 import VIS._
 import spinal.lib.memory.sdram.xdr.Core
 
@@ -316,9 +317,9 @@ class Top_ECP5 extends Component {
         io.led_red := !(pwm.io.led || PLL.io.locked)
 
         val soundBuff = BufferCC(Core11.areaRst.areaDiv4.comx35.io.Sound, S"00000")
-        val dac = new Darkknight_DAC()
+        val dac = new Delta_Sigma_DAC()
         val cic = new  CIC_Interpolation(8,4,8,2)
-        val downs = new Downsampler(8,8)
+        val downs = new DownSampler(8,8)
         downs.io.i_data := soundBuff.resize(8);
         cic.io.i_div := downs.io.div
         cic.io.i_data := downs.io.o_data
