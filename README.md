@@ -1,6 +1,31 @@
 COMX-35F
 ============
-This is a WIP of the comx-35 computer writen in SpinalHDL.  And focused on the video chipset, namely the CDP1896 and CDP1870.
+This is a cycle-accurate COMX-35 computer that has been implemented on an FPGA, with all the hardware written in SpinalHDL.
 
-Currently it can output BW NTSC video, color is some what more problematic on the ice40 with one PLL.
+Video
+============
+The system currently supports NTSC video.  Everything needed for PAL is available in the hardware.
+
+For NTCS color you will need a clock source of 14.318MHz, currently I'm using a si5351 breakout board.
+Both Burst and Luma use a 3 bit R2R ladder DAC.
+And this get mixed the same as on the COMIX-35 with a NPN transistor driving the video output.
+
+Inputs
+============
+For a keyboard I'm using a BlackBerry Q10 PMOD not the best option.
+
+There is a serial interface available for reading and writing programs to memory, which also allows for halting the CPU, and resetting the system. This interface also can press keys for type in programs. The baud rate for this interface is 57600.
+
+The use of an Op-amp as a comparator for the input pin of the tape interface works well for the loading of programs.
+I haven't tried saving out to a tape yet. 
+When using EMMA to generate tape audio, it is important to set the CPU frequency to 5.53125MHz. This also has to be done for the COMIX-35. pilot tone should be 2Khz.
+
+Simulation
+============
+Also there is a simulator available that features an NTSC monitor capable of displaying the output of the video hardware. This is extremely useful for obtaining a comprehensive hardware trace of the system as it runs. However, the simulator only runs at 2 FPS.
+
+TODOs & Problems
+============
+It appears that unintentional improvements were made to the video hardware of this implementation. As a consequence, it is possible that any code developed on the system may not function correctly on the original COMX-3 hardware. Similarly, EMMA will also run the code without error.
+
 
