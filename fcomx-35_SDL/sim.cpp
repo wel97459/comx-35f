@@ -38,7 +38,7 @@ Vcomx35_test *comx;
 
 Uint64 main_time=0;
 Uint64 main_trace=0;
-Uint8 trace=0;
+Uint8 trace=1;
 
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
@@ -67,7 +67,9 @@ Uint64 ticksLast = 0 ;
 char tmpstr[64];
 
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
-char basicStr[]="\rcaall(@4401)\r";
+//char basicStr[]="\rcaall(@4401)\r";
+char basicStr[]="\rtoone(2,2,8)\r";
+//char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
 
 char ComxKeyboard(char keyCode)
@@ -279,6 +281,7 @@ void doNTSC(int CompSync, int Video, int Burst, int Color)
 void sim_run(){
     comx->reset = !(main_time>10);
     comx->io_Start = (main_time>15);
+    comx->io_Wait = true;
 
     if (comx->io_MRD == false && comx->io_Addr16 < 0x4000) {
         comx->io_DataIn = rom[comx->io_Addr16 & 0x3fff];
@@ -342,7 +345,7 @@ void sim_run(){
         } 
     }
     doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
-    if(trace){
+    if(trace && 0){
         if(P_Last != comx_Syms->TOP__comx35_test__clockedArea_CPU.__Vdly__P)
         {
             if(comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 5 || comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 4) R3_Last=comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3;

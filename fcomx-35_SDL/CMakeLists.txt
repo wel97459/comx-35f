@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.10)
   SET (CMAKE_C_COMPILER   "/usr/bin/clang")
   SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
  #llvm-profdata -fprofile-use=default.profdata -fprofile-generate
-  set(MYAPP_PGO "-fprofile-generate") 
-  set(MYAPP_PGO "-fprofile-use=./default.profdata") 
+ #  set(MYAPP_PGO "-fprofile-generate") 
+ #  set(MYAPP_PGO "-fprofile-use=./default.profdata") 
  
 #set(MYAPP_PGO "-fprofile-generate=./pgo") 
 #set(MYAPP_PGO "-fprofile-use=./pgo") 

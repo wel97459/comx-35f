@@ -4,3 +4,6 @@
 [submodule "src/main/scala/MySpinalHardware"]
 	path = src/main/scala/MySpinalHardware
 	url = https://github.com/wel97459/MySpinalHardware
+[submodule "src/main/scala/DSPs_SpinalHDL"]
+	path = src/main/scala/DSPs_SpinalHDL
+	url = git@github.com:wel97459/DSPs_SpinalHDL.git
