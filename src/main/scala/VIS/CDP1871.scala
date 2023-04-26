@@ -7,7 +7,7 @@ class CDP1871 extends Component
         val Latch = in Bool()
         val KeyCode = in Bits(8 bits)
         val Ready = out Bool()
-
+        val Repeat = in Bool()
         val TPB = in Bool()
         val MRD_ = in Bool()
         val N3_ = in Bool()
@@ -22,7 +22,6 @@ class CDP1871 extends Component
         val ready = Reg(Bool()) init(True)
         val keycode = Reg(Bits(8 bits)) init(0x00)
         val da = Reg(Bool()) init(False)
-        val rpt = False
 
     //Signals
         val kbd_sel = !io.N3_ & io.MRD_
@@ -38,14 +37,14 @@ class CDP1871 extends Component
 
         when(kbd_sel)
         {
-            da := False
+            da := io.Repeat
             ready := True
         }
         
     //Outputs
     io.DataOut := kbd_sel ? keycode | 0x00
     io.DA_ := !da
-    io.RPT_ := !rpt
+    io.RPT_ := !io.Repeat
     io.KBD_SEL := kbd_sel
     io.Ready := ready
 }

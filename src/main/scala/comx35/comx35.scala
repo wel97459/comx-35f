@@ -49,6 +49,7 @@ class comx35_test() extends Component {
         val CMA3_PMA10 = out Bool()
 
         val Start = in Bool()
+        val Wait = in Bool()
         
         val HSync_ = out Bool()
         val VSync_ = out Bool()
@@ -59,11 +60,12 @@ class comx35_test() extends Component {
         val Sync = out Bool()
 
         val KBD_Latch = in Bool()
+        val KBD_Repeat = in Bool()
         val KBD_KeyCode = in Bits(8 bits)
         val KBD_Ready = out Bool()
         val Q = out Bool()
         val Tape_in = in Bool()
-        val Sound = out Bits(4 bits)
+        val Sound = out SInt(5 bits)
         val Video = in UInt(8 bits)
         val testing = in UInt(8 bits)
         val vI = in UInt(8 bits)
@@ -125,7 +127,7 @@ class comx35_test() extends Component {
         kbd71.io.MRD_ := clockedArea.CPU.io.MRD
         kbd71.io.N3_ := vis69.io.N3_
 
-        clockedArea.CPU.io.Wait_n := True
+        clockedArea.CPU.io.Wait_n := io.Wait
         clockedArea.CPU.io.Clear_n := io.Start
         clockedArea.CPU.io.EF_n := io.Tape_in ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
         clockedArea.CPU.io.Interrupt_n := INT_FF
@@ -146,7 +148,7 @@ class comx35_test() extends Component {
 
         kbd71.io.KeyCode := io.KBD_KeyCode
         kbd71.io.Latch := io.KBD_Latch
-
+        kbd71.io.Repeat := io.KBD_Repeat
     //Outputs
         io.DataOut := clockedArea.CPU.io.DataOut
         io.Addr16 := clockedArea.CPU.io.Addr16

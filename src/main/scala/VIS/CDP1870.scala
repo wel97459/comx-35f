@@ -37,15 +37,13 @@ class CDP1870 extends Component{
  
         val FresHorz = CMD_Reg(7)
         val COLB = CMD_Reg(6 downto 5).asUInt
-        val DispOff_Next = CMD_Reg(4)
+        val DispOff = CMD_Reg(4)
         val CFC = CMD_Reg(3)
         val BKG = CMD_Reg(2 downto 0)
         
         val VerticalCounter = Reg(UInt(9 bits)) init(0)
         val HorizontalCounter = Reg(UInt(6 bits)) init(59)
         val TimingCounter = Reg(UInt(4 bits)) init(0)
-        
-        val DispOff = RegNextWhen(DispOff_Next, (VerticalCounter === 0).rise()) init(True)
 
         val PixelShifter = Reg(Bits(6 bits))
         val Color = Reg(Bits(3 bits))

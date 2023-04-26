@@ -19,7 +19,7 @@ set_io -nowarn spi_miso 17 # Shared with the flash
 
 # Normal GPIO pins, left side
 set_io -nowarn gpio_23 23
-set_io -nowarn gpio_25 25
+set_io -nowarn sound 25
 set_io -nowarn gpio_26 26
 set_io -nowarn gpio_27 27
 set_io -nowarn gpio_32 32
@@ -27,8 +27,8 @@ set_io -nowarn gpio_35 35
 set_io -nowarn gpio_31 31
 set_io -nowarn gpio_37 37
 set_io -nowarn gpio_34 34
-set_io -nowarn gpio_43 43
-set_io -nowarn pwm_sound 36
+set_io -nowarn serial_in 43
+set_io -nowarn serial_out 36
 set_io -nowarn gpio_42 42
 
 set_io -nowarn sync 38

@@ -32,7 +32,7 @@ class CDP1869 extends Component {
 
         val PMA = out Bits(10 bits)
 
-        val Sound = out Bits(4 bits)
+        val Sound = out SInt(5 bits)
     }
     
     //Registers
@@ -48,9 +48,12 @@ class CDP1869 extends Component {
     val HMA = Reg(UInt(11 bits)) init(0) //offset counter
     val RPA = Reg(UInt(11 bits)) init(0) //counter for page address
 
-    val ToneDiv = Reg(UInt(9 bits)) init(0) //counter for page address
+    val ToneDiv = Reg(UInt(11 bits)) init(0) //counter for page address
     val ToneCounter = Reg(UInt(7 bits)) init(0) //counter for page address
     val Tone_FF = Reg(Bool()) init(false)
+
+    val WN_LFSR = Reg(Bits(16 bits)) init(1)
+
     //Signals
     val FresVert = WN_Reg(7)
     val DoublePage = WN_Reg(6)
@@ -72,22 +75,6 @@ class CDP1869 extends Component {
 
     val PMSEL = (UpperAddr.asUInt >= 0xf8) && io.Display_
     val CMSEL = (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7) && io.Display_
-
-    val Tone = SN_Reg(14 downto 8)
-    val Tone_Off = SN_Reg(7)
-    val Tone_Freq_Sel = SN_Reg(6 downto 4)
-    val Tone_Amp = SN_Reg(3 downto 0)
-
-    val Tone_Clk = Tone_Freq_Sel.mux(
-        0 -> ToneDiv(8),
-        1 -> ToneDiv(7),
-        2 -> ToneDiv(6),
-        3 -> ToneDiv(5),
-        4 -> ToneDiv(4),
-        5 -> ToneDiv(3),
-        6 -> ToneDiv(2),
-        7 -> ToneDiv(1)
-    )
 
     when(io.Display_){
         RCA := 0
@@ -117,6 +104,37 @@ class CDP1869 extends Component {
         ToneDiv := ToneDiv + 1
     }
 
+    val Tone = SN_Reg(14 downto 8)
+    val Tone_Off = SN_Reg(7)
+    val Tone_Freq = SN_Reg(6 downto 4)
+    val Tone_Amp = B"00" ## SN_Reg(3 downto 0)
+
+    val Tone_Clk = Tone_Freq.mux(
+        0 -> ToneDiv(7),
+        1 -> ToneDiv(6),
+        2 -> ToneDiv(5),
+        3 -> ToneDiv(4),
+        4 -> ToneDiv(3),
+        5 -> ToneDiv(2),
+        6 -> ToneDiv(1),
+        7 -> ToneDiv(0)
+    )
+
+    val WN_Freq = WN_Reg(14 downto 12)
+    val WN_Amp = B"00" ## WN_Reg(11 downto 8)
+    val WN_Off = WN_Reg(15)
+
+    val WN_CLK = WN_Freq.mux(
+        0 -> ToneDiv(10),
+        1 -> ToneDiv(9),
+        2 -> ToneDiv(8),
+        3 -> ToneDiv(7),
+        4 -> ToneDiv(6),
+        5 -> ToneDiv(5),
+        6 -> ToneDiv(4),
+        7 -> ToneDiv(3)
+    )
+
     when(Tone_Clk.rise()){
         when(ToneCounter < Tone.asUInt){
             ToneCounter := ToneCounter + 1
@@ -125,6 +143,15 @@ class CDP1869 extends Component {
             Tone_FF := !Tone_FF
         }
     }    
+    val WN_LFSR_next = WN_LFSR(14 downto 0) ## (WN_LFSR(8) ^ WN_LFSR(12))
+    when(WN_CLK.rise()){
+        WN_LFSR := WN_LFSR_next
+    }
+
+    val ToneOut = (Tone_FF ? (Tone_Amp.asSInt) | (-Tone_Amp.asSInt))
+    val LFSROut = (WN_LFSR(11) ? (WN_Amp.asSInt) | (-WN_Amp.asSInt))
+
+    val sound_mix = (ToneOut + LFSROut) >> 1
 
     //Outputs
     io.N3_ := (io.N =/= 3)
@@ -140,5 +167,5 @@ class CDP1869 extends Component {
 
     io.CMA3_PMA10 := DoublePage ? RPA(10) | RemapRCA.asBits(3)
 
-    io.Sound := Tone_FF ? Tone_Amp | B"0000"
+    io.Sound := sound_mix
 }
