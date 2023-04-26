@@ -1,0 +1,62 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Thu Mar 30 17:38:08 2023
+[*]
+[dumpfile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/simx.fst"
+[dumpfile_mtime] "Thu Mar 30 08:20:49 2023"
+[dumpfile_size] 1081404
+[savefile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/debug_cpu.gtkw"
+[timestart] 2492550
+[size] 1920 1056
+[pos] -1 -1
+*-14.174471 1889299 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] comx35_test.
+[treeopen] comx35_test.comx35_test.
+[sst_width] 318
+[signals_width] 439
+[sst_expanded] 1
+[sst_vpaned_height] 651
+@28
+comx35_test.reset
+comx35_test.clk
+@200
+-1802
+@28
+comx35_test.comx35_test.clockedArea_CPU.io_SC[1:0]
+comx35_test.comx35_test.clockedArea_CPU.io_TPA
+comx35_test.comx35_test.clockedArea_CPU.io_TPB
+@22
+comx35_test.comx35_test.clockedArea_CPU.Addr16[15:0]
+@28
+comx35_test.comx35_test.clockedArea_CPU.io_MRD
+comx35_test.comx35_test.clockedArea_CPU.io_MWR
+@22
+comx35_test.comx35_test.clockedArea_CPU.io_DataIn[7:0]
+comx35_test.comx35_test.clockedArea_CPU.OP[7:0]
+comx35_test.comx35_test.clockedArea_CPU.D[7:0]
+comx35_test.comx35_test.clockedArea_CPU.P[3:0]
+comx35_test.comx35_test.clockedArea_CPU.N[3:0]
+comx35_test.comx35_test.clockedArea_CPU.io_EF_n[3:0]
+@28
+comx35_test.comx35_test.clockedArea_CPU.Q
+@22
+comx35_test.comx35_test.clockedArea_CPU.R_0[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_1[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_2[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_3[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_4[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_5[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_6[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_7[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_8[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_9[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_10[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_11[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_12[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_13[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_14[15:0]
+comx35_test.comx35_test.clockedArea_CPU.R_15[15:0]
+@23
+comx35_test.comx35_test.kbd71.keycode[7:0]
+[pattern_trace] 1
+[pattern_trace] 0
