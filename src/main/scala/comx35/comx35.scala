@@ -65,7 +65,7 @@ class comx35_test() extends Component {
         val KBD_Ready = out Bool()
         val Q = out Bool()
         val Tape_in = in Bool()
-        val Sound = out SInt(5 bits)
+        val Sound = out SInt(6 bits)
         val Video = in UInt(8 bits)
         val testing = in UInt(8 bits)
         val vI = in UInt(8 bits)
@@ -111,7 +111,7 @@ class comx35_test() extends Component {
         io.PMWR_ := vis69.io.PMWR_
         io.PMD_Out := clockedArea.CPU.io.DataOut
 
-        io.CMA := io.PMD_In(6 downto 0) ## vis69.io.CMA(2 downto 0)
+        io.CMA := vis69.io.CMA(2 downto 0) ## io.PMD_In(6 downto 0)
         io.CMWR_ := vis69.io.CMWR_
         io.CMD_Out := clockedArea.CPU.io.DataOut
 

@@ -16,8 +16,8 @@ LOCATE COMP "si_14Mhz" SITE "U17"; #J9_P1
 LOCATE COMP "scl" SITE "M17"; #J9_P6
 LOCATE COMP "sda" SITE "M18"; #J9_P7
 
-LOCATE COMP "sound_dac_p" SITE "B18"; #J10_P2
-LOCATE COMP "sound_dac_n" SITE "B20"; #J10_P2
+LOCATE COMP "sound_dac_l" SITE "B20"; #J10_P2
+LOCATE COMP "sound_dac_r" SITE "F20"; #J10_P2
 
 LOCATE COMP "sync" SITE "D1"; #J10_P2
 LOCATE COMP "video[0]" SITE "B1"; #J10_P1
@@ -26,6 +26,13 @@ LOCATE COMP "video[2]" SITE "C3"; #J10_P3
 LOCATE COMP "burst[0]" SITE "C1"; #J10_P5
 LOCATE COMP "burst[1]" SITE "C2"; #J10_P6
 LOCATE COMP "burst[2]" SITE "E3"; #J10_P7
+
+LOCATE COMP "tape_led" SITE "B2";
+    IOBUF PORT "tape_led" IO_TYPE=LVCMOS33;
+LOCATE COMP "tape_in" SITE "A2";
+    IOBUF PORT "tape_in" IO_TYPE=LVCMOS33;
+LOCATE COMP "tape_out" SITE "K4";
+    IOBUF PORT "tape_out" IO_TYPE=LVCMOS33;
 
 
 LOCATE COMP "serial_rx" SITE "H18";

@@ -7,6 +7,25 @@
 
 struct termios options;
 
+#define DEFUS_ADDR          0x4281
+#define EOP_ADDR            0x4283
+#define STRING_ADDR         0x4292
+#define ARRAY_VALUE_ADDR    0x4294
+#define EOD_ADDR            0x4299
+#define BASIC_RAM_ADDR      0x4400
+
+struct comxHeader
+{
+    char type; //0
+    char name[4]; //1-4
+    unsigned short defus; //5-6
+    unsigned short eop; //7-8
+    unsigned short eod; //9-10
+    unsigned short array; //11-12
+    unsigned short nu1; //13-14
+};
+
+
 int set_interface_attribs (int fd, int speed)
 {
         struct termios tty;
@@ -75,6 +94,69 @@ size_t readport(char *buff, size_t len, int fd)
     }
 }
 
+void waitOk(int fd)
+{
+    size_t len;
+    char ch[5];
+    while (strncmp(ch, "Ok.", 3) != 0)
+    {
+        len = readport(ch, 5, fd);
+    }
+    tcflush(fd, TCIOFLUSH);
+}
+
+void loadDefus(int fd, struct comxHeader *cxh){
+    char cs[32];
+    size_t len;
+    unsigned char offset = 0x00;
+    if(cxh->type == 6) offset = 0x44;
+    //if(cxh->type == 6) offset = 0x28;
+
+    write (fd, "a4281", 5); //Set Defus Address
+    waitOk(fd);
+
+    len = sprintf(cs, "w%02xw%02x", ((cxh->defus & 0xff00) >> 8)+offset, cxh->defus & 0xff);
+    printf("%s %lu\n", cs, len);
+    write (fd, cs, len); //Set Defus
+    waitOk(fd);
+
+
+    write (fd, "a4283", 5); //Set EOP Address
+    waitOk(fd);
+
+    len = sprintf(cs, "w%02xw%02x", ((cxh->eop & 0xff00) >> 8)+offset, cxh->eop & 0xff);
+    printf("%s %lu\n", cs, len);
+    write (fd, cs, len); //Set EOP
+    waitOk(fd);
+
+    if(cxh->type == 1) return;
+
+    write (fd, "a4299", 5); //Set EOD Address
+    waitOk(fd);
+
+    len = sprintf(cs, "w%02xw%02x", ((cxh->eod & 0xff00) >> 8)+offset, cxh->eod & 0xff);
+    printf("%s %lu\n", cs, len);
+    write (fd, cs, len); //Set EOD
+    waitOk(fd);
+
+    write (fd, "a4292", 5); //Set String Address
+    waitOk(fd);
+
+    len = sprintf(cs, "w%02xw%02x", ((cxh->eod & 0xff00) >> 8)+offset, cxh->eod & 0xff);
+    printf("%s %lu\n", cs, len);
+    write (fd, cs, len); //Set String
+    waitOk(fd);
+
+    len = sprintf(cs, "w%02xw%02x", ((cxh->array & 0xff00) >> 8)+offset, cxh->array & 0xff);
+    printf("%s %lu\n", cs, len);
+    write (fd, cs, len); //Set Array
+    waitOk(fd);
+
+}
+void flipShort(unsigned short *s){
+    *s = (*s << 8) | (*s >> 8);
+}
+
 int main(int argc, char **argv)
 {
     FILE *fp;
@@ -82,8 +164,8 @@ int main(int argc, char **argv)
     strcat(portname, argv[1]);
 
     fp = fopen(argv[2], "r");
-
-    int fd = open(portname, O_RDWR | O_NOCTTY);
+    int fd;
+    fd = open(portname, O_RDWR | O_NOCTTY);
     if (fd < 0) {
         printf("There was a error opening %s, %i\r\n\r\n", portname, fd);
         return 0;
@@ -94,36 +176,57 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    // fseek( fp , 0L , SEEK_END);
-    // size_t data_len = ftell( fp );
+    fseek( fp , 0L , SEEK_END);
+    size_t data_len = ftell( fp );
     rewind(fp);
 
-    size_t data_len=1;
     size_t len=0;
     char ch[256], c[16];
+    unsigned short address_start = BASIC_RAM_ADDR;
+    struct comxHeader cxh;
 
-    printf("Put system in wait mod.\r\n");
-    write (fd, "f01", 3);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
-    }
-    sleep(1);
-    write (fd, "f00tt", 5);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
-    }
-    sleep(2);
+    fread(&cxh, 1, 1, fp);
+    fread(&cxh.name, 1, 4, fp);
 
-    write (fd, "f04a0401", 8);
-    tcflush(fd, TCIOFLUSH);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
+    fread(&cxh.defus, 1, 2, fp);
+    flipShort(&cxh.defus);
+
+    fread(&cxh.eop, 1, 2, fp);
+    flipShort(&cxh.eop);
+
+    fread(&cxh.eod, 1, 2, fp);
+    flipShort(&cxh.eod);
+    
+    if(cxh.type != 1){
+        fread(&cxh.array, 1, 2, fp);
+        flipShort(&cxh.array);
+        fread(&cxh.nu1, 1, 2, fp);
+        flipShort(&cxh.nu1);    
+    }else{
+        address_start = cxh.defus;
     }
     
-    tcflush(fd, TCIOFLUSH);
+    printf("Type: %u, Str:%.4s, defus:%04X, eop:%04X, eod:%04X, array:%04X  \n", cxh.type, cxh.name, cxh.defus, cxh.eop, cxh.eod, cxh.array);
+
+    printf("Resetting System!\r\n");
+    write (fd, "f01", 3);
+    waitOk(fd);
+    sleep(1);
+
+    write (fd, "f00tt", 5);
+    waitOk(fd);
+    sleep(2);
+
+    printf("Halting system!\r\n");
+    write (fd, "f04", 3);
+    waitOk(fd);
+
+    len = sprintf(ch, "a%04x", address_start);
+    printf("%s %lu\n", ch, len);
+    write (fd, ch, len); //Set address
+    waitOk(fd);
+
+    printf("file starting at:%lu\n", ftell(fp));
     int i = 0;
     while(data_len>0){
         data_len = fread(&ch, 1, 255, fp);
@@ -136,43 +239,27 @@ int main(int argc, char **argv)
             printf("%c", data_len == 255 ? 'O' : '.');
 
             write (fd, ch, data_len);
-
-            while (strncmp(ch, "Ok.", 3) != 0)
-            {
-               len = readport(ch, 256, fd);
-            }
-            tcflush(fd, TCIOFLUSH);
+            waitOk(fd);
         }
     }
 
-//     strcpy(ch, "a0401");
-//     write (fd, ch, 5);
-//     tcflush(fd, TCIOFLUSH);
-//     while (strncmp(ch, "Ok.", 3) != 0)
-//     {
-//         len = readport(ch, 255, fd);
-//         if(len>1) printf("Got:'%s'\r\n", ch);
-//     }
-    printf("\r\nPut system in run mod.\r\n");
-    strcpy(ch, "f00");
-    write (fd, ch, 3);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
-    }
+    printf("\r\nLoading Defus\r\n");
+    loadDefus(fd, &cxh);
+
+    printf("Put system in run mod.\r\n");
+    write (fd, "f00", 3);
+    waitOk(fd);
 
     write (fd, "t\n", 2);
     sleep(1);
-
+ 
+    goto done;
     len = sprintf(ch, "t\ntctatltlt(t@t4t4t0t1t)t\n");
     for(int i = 0;i<len;i+=2){
         write (fd, ch+i, 2);
-        while (strncmp(c, "Ok.", 3) != 0)
-        {
-            readport(c, 256, fd);
-        }
-        tcflush(fd, TCIOFLUSH);
+        waitOk(fd);
     }
+
 done:
     printf("Done.\r\n");
     fclose(fp);

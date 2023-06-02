@@ -30,13 +30,18 @@ class Top_ECP5 extends Component {
         val scl = inout(Analog(Bool()))
         val sda = inout(Analog(Bool()))
 
-        val sound_dac_p = out Bool()
-        val sound_dac_n = out Bool()
+        val sound_dac_l = out Bool()
+        val sound_dac_r = out Bool()
 
         val serial_tx = out Bool()
         val serial_rx = in Bool()
 
         val led_red = out Bool()
+
+        val tape_led = out Bool()
+        val tape_out = out Bool()
+        val tape_in = in Bool()
+        
     }
     noIoPrefix()
 
@@ -81,7 +86,7 @@ class Top_ECP5 extends Component {
             rstCounter.clear()
         }
 
-        val ram = new Ram(log2Up(0x4FFF))
+        val ram = new Ram(15)
         ram.io.ena := True
         val areaRst = new ResetArea(!reset, false) {
             val kbd_ready = Reg(Bool()) init(False)
@@ -100,7 +105,7 @@ class Top_ECP5 extends Component {
             a2c.ascii := pro.io.keys.valid ? pro.io.keys.payload | area40kHz.kbd.io.key_code_stream.payload
             
             val areaDiv4 = new SlowArea(2) {
-                val Tape_in = False
+                val Tape_in = BufferCC(!io.tape_in, True)
                 val Tape_Filter = Reg(Bits(8 bits)) init(0)
                 val Tape_FF = Reg(Bool()) init(False)
                 Tape_Filter := Tape_in ## Tape_Filter(7 downto 1)
@@ -114,8 +119,9 @@ class Top_ECP5 extends Component {
                 comx35.io.Start := !pro.io.FlagOut(1)
                 comx35.io.Wait := !pro.io.FlagOut(2)
                 comx35.io.DataIn := 0x00
-                comx35.io.Tape_in := Tape_FF
-                //io.lcd_sdo := Tape_FF ^ comx35.io.Q
+                comx35.io.Tape_in := Tape_FF 
+                io.tape_out := comx35.io.Q
+                io.tape_led := comx35.io.Q || Tape_FF 
 
                 comx35.io.KBD_Latch := False
                 comx35.io.KBD_KeyCode := a2c.comx
@@ -161,7 +167,7 @@ class Top_ECP5 extends Component {
                 rom.io.wea := 0
                 rom.io.ena := True
 
-                val ram_address = comx35.io.Addr16(14 downto 0).asUInt - 0x4000
+                val ram_address = (comx35.io.Addr16.asUInt - 0x4000).asBits
                 val wea = False
 
                 when(!comx35.io.MRD)
@@ -185,11 +191,11 @@ class Top_ECP5 extends Component {
         {
             ram.io.dina := pro.io.RamInterface.DataOut
             ram.io.wea := pro.io.RamInterface.Write
-            ram.io.addra := pro.io.RamInterface.Address(14 downto 0)
+            ram.io.addra := (pro.io.RamInterface.Address.asUInt - 0x4000).asBits.resized
         }otherwise{
             ram.io.dina := areaRst.areaDiv4.comx35.io.DataOut
             ram.io.wea := areaRst.areaDiv4.wea
-            ram.io.addra := areaRst.areaDiv4.ram_address.asBits
+            ram.io.addra := areaRst.areaDiv4.ram_address.resized
         }
     }
     val Core14 = new ClockingArea(clk14Domain) {
@@ -316,17 +322,17 @@ class Top_ECP5 extends Component {
         val pwm = new LedGlow(25)
         io.led_red := !(pwm.io.led || PLL.io.locked)
 
-        val soundBuff = BufferCC(Core11.areaRst.areaDiv4.comx35.io.Sound, S"00000")
-        val dac = new Delta_Sigma_DAC()
-        val cic = new  CIC_Interpolation(8,4,8,2)
+        val Q = BufferCC(Core11.areaRst.areaDiv4.comx35.io.Q, False)
+        val soundBuff = BufferCC(Core11.areaRst.areaDiv4.comx35.io.Sound, S"000000")
+        val dac = new Delta_Sigma_DAC_SOrder(16)
+        val cic = new  CIC_Interpolation(8,4,8,1)
         val downs = new DownSampler(8,8)
-        downs.io.i_data := soundBuff.resize(8);
+        downs.io.i_data := soundBuff.resize(8)+ (io.tape_led ? S"000001" | S"000000");
         cic.io.i_div := downs.io.div
         cic.io.i_data := downs.io.o_data
-        dac.io.dac_in := cic.io.o_data.resize(16).asBits
-        io.sound_dac_p := dac.io.dac_out
-        io.sound_dac_n := !dac.io.dac_out
-
+        dac.io.dac_in := cic.io.o_data.resize(16).asUInt
+        io.sound_dac_l := dac.io.dac_out
+        io.sound_dac_r := dac.io.dac_out
     }
 
     clk14Domain.reset := !Core25.area40kHz.si.io.o_done
@@ -336,6 +342,7 @@ class Top_ECP5 extends Component {
 object Top_ECP5_CL8_Verilog extends App {
   Config_ECP5_CLV8.spinal.generateVerilog(new Top_ECP5())
 }
+
 object Top_ECP5_CLI5v6_Verilog extends App {
   Config_ECP5_CLI5v6.spinal.generateVerilog(new Top_ECP5())
 }

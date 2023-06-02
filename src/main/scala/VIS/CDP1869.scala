@@ -32,7 +32,7 @@ class CDP1869 extends Component {
 
         val PMA = out Bits(10 bits)
 
-        val Sound = out SInt(5 bits)
+        val Sound = out SInt(6 bits)
     }
     
     //Registers
@@ -148,10 +148,10 @@ class CDP1869 extends Component {
         WN_LFSR := WN_LFSR_next
     }
 
-    val ToneOut = (Tone_FF ? (Tone_Amp.asSInt) | (-Tone_Amp.asSInt))
-    val LFSROut = (WN_LFSR(11) ? (WN_Amp.asSInt) | (-WN_Amp.asSInt))
+    val ToneOut = (Tone_FF ? (Tone_Amp.resize(6).asSInt) | (-Tone_Amp.resize(6).asSInt))
+    val LFSROut = (WN_LFSR(11) ? (WN_Amp.resize(6).asSInt) | (-WN_Amp.resize(6).asSInt))
 
-    val sound_mix = (ToneOut + LFSROut) >> 1
+    val sound_mix = (ToneOut + LFSROut)
 
     //Outputs
     io.N3_ := (io.N =/= 3)

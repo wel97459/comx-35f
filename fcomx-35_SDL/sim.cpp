@@ -6,6 +6,7 @@
 #include <thread>
 #include "sim.h"
 #include "crt_core.h"
+#include "comx_loader.h"
 #include <verilated_fst_c.h>
 #include "Vcomx35_test__Syms.h"
 
@@ -63,12 +64,14 @@ Uint16 drawX, drawY, scanX;
 Uint16 FrameCount = 0;
 Uint16 FrameCurent = 0;
 
-Uint64 ticksLast = 0 ;
+Uint64 ticksLast = 0;
+struct comxHeader *cxh;
 char tmpstr[64];
 
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
-char basicStr[]="\rtoone(2,2,8)\r";
+char basicStr[]="\rprr peek(@4281)\r";
+//char basicStr[]="\rruun\r";
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
 
@@ -177,6 +180,9 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     printf("Started.\n");
     genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
+
+    cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Get Your Gadget.comx");
+
     comx = new Vcomx35_test();
     comx_Syms = comx->vlSymsp;
 
@@ -291,7 +297,7 @@ void sim_run(){
         comx->io_DataIn = 0x00;
     }
     
-    if (comx->io_MWR == false && comx->io_Addr16 > 0x3fff && comx->io_Addr16 < 0xC000) {
+    if (comx->io_MWR == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
         ram[(comx->io_Addr16 & 0x7fff) - 0x4000] = comx->io_DataOut;
     }
 
@@ -335,8 +341,15 @@ void sim_run(){
         vidTime = 0;
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
 
-        if(FrameCount == 84){
-            loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/main.comx", &ram[0x401], 0x8000);
+        if(FrameCount == 90){
+            //loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/main.comx", &ram[0x401], 0x8000);
+            memcpy(&ram[cxh->address_start-0x4000], &cxh->data[0], cxh->len);
+            memcpy(&ram[DEFUS_ADDR-0x4000], &cxh->defus, 2);
+            memcpy(&ram[EOP_ADDR-0x4000], &cxh->eop, 2);
+            memcpy(&ram[EOD_ADDR-0x4000], &cxh->eod, 2);
+            memcpy(&ram[STRING_ADDR-0x4000], &cxh->eod, 2);
+            memcpy(&ram[ARRAY_VALUE_ADDR-0x4000], &cxh->array, 2);
+
             saveFile("../data/debug_ram.bin", ram, 0x8000);
         } 
         if(FrameCount == 160){
@@ -400,6 +413,7 @@ void sim_run(){
 void sim_end()
 {
     printf("Ended.\n");
+    comxFree(cxh);
     comx->final();
 
     #ifdef TRACE

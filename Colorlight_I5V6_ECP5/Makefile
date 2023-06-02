@@ -24,5 +24,9 @@ $(TARGET).bit: $(TARGET)_out.config
 prog: $(TARGET).bit
 	sudo openFPGALoader --cable cmsisdap $(TARGET).bit
 
+# upload bitstream to fpga
+flash: $(TARGET).bit
+	sudo openFPGALoader --cable cmsisdap -f $(TARGET).bit
+
 clean:
 	rm -f *.svf *.bit *.config *.json *.ys -r target gen project .bsp

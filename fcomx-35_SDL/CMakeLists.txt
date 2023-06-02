@@ -45,6 +45,7 @@ add_executable(${CMAKE_PROJECT_NAME}
   sim.cpp
   crt_core.c
   crt_ntsc.c
+  comx_loader.cpp
 )
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS TRACE)
