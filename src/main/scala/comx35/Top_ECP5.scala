@@ -41,7 +41,11 @@ class Top_ECP5 extends Component {
         val tape_led = out Bool()
         val tape_out = out Bool()
         val tape_in = in Bool()
-        
+        val tape_sw = in Bool()
+        val tape_motor = out Bool()
+
+        val ps2_clk = in Bool()
+        val ps2_data = in Bool()
     }
     noIoPrefix()
 
@@ -90,24 +94,40 @@ class Top_ECP5 extends Component {
         ram.io.ena := True
         val areaRst = new ResetArea(!reset, false) {
             val kbd_ready = Reg(Bool()) init(False)
-            val area40kHz = new SlowArea(50 kHz, true) {
+            val area40kHz = new SlowArea(100 kHz, true) {
                 val ready = RegNext(kbd_ready) init(False)
-                val kbd = new Q10Keyboard()
+                // val kbd = new Q10Keyboard()
 
-                kbd.io.i_hold := False
+                // kbd.io.i_hold := False
 
-                kbd.io.i_scl := io.scl
-                kbd.io.i_sda := io.sda
-                kbd.io.key_code_stream.ready := ready.rise()
+                // kbd.io.i_scl := io.scl
+                // kbd.io.i_sda := io.sda
+                // kbd.io.key_code_stream.ready := ready.rise()
+
+                val kbd = new PS2_Keyboard_Decoder(100)
+                kbd.io.clock_in := io.ps2_clk
+                kbd.io.data_in := io.ps2_data
+                kbd.io.keyCode.ready := ready.rise()
             }
 
             val a2c = new ascii2comx()
-            a2c.ascii := pro.io.keys.valid ? pro.io.keys.payload | area40kHz.kbd.io.key_code_stream.payload
+            //a2c.ascii := pro.io.keys.valid ? pro.io.keys.payload | area40kHz.kbd.io.key_code_stream.payload
+            a2c.ascii := pro.io.keys.payload
             
             val areaDiv4 = new SlowArea(2) {
                 val Tape_in = BufferCC(!io.tape_in, True)
+
+                val Tape_sw_cc = BufferCC(!io.tape_sw, True)
+                val Tape_sw = Debounce(1, 100 ms)
+                Tape_sw.write(Tape_sw_cc.asBits)
+
                 val Tape_Filter = Reg(Bits(8 bits)) init(0)
                 val Tape_FF = Reg(Bool()) init(False)
+
+                val Tape_stop = False
+                val Tape_start = False
+                val Tape_state = Reg(Bool()) init(False)
+
                 Tape_Filter := Tape_in ## Tape_Filter(7 downto 1)
                 when(Tape_Filter === B"8'hFF")
                 {
@@ -124,8 +144,10 @@ class Top_ECP5 extends Component {
                 io.tape_led := comx35.io.Q || Tape_FF 
 
                 comx35.io.KBD_Latch := False
-                comx35.io.KBD_KeyCode := a2c.comx
-                comx35.io.KBD_Repeat := area40kHz.kbd.io.key_Held
+                //comx35.io.KBD_KeyCode := a2c.comx
+                comx35.io.KBD_KeyCode := pro.io.keys.valid ? a2c.comx | area40kHz.kbd.io.keyCode.payload
+                //comx35.io.KBD_Repeat := area40kHz.kbd.io.key_Held
+                comx35.io.KBD_Repeat := False
 
                 val keyHit = Reg(Bool()) init(False)
                 when(comx35.io.KBD_Ready && comx35.io.Display_.rise()){
@@ -133,7 +155,8 @@ class Top_ECP5 extends Component {
                         keyReady := True
                         comx35.io.KBD_Latch := True
                         kbd_ready := True
-                    }elsewhen(area40kHz.kbd.io.key_code_stream.valid){
+                    //}elsewhen(area40kHz.kbd.io.key_code_stream.valid){
+                    }elsewhen(area40kHz.kbd.io.keyCode.valid){
                         comx35.io.KBD_Latch := True
                         kbd_ready := True
                     }
@@ -174,6 +197,17 @@ class Top_ECP5 extends Component {
                 {
                     when(comx35.io.Addr16.asUInt < 0x4000)
                     {
+                        when(comx35.io.N === 0){
+                            //save and loads stop
+                            when(comx35.io.Addr16 === 0x14e1 || comx35.io.Addr16 === 0x1047){
+                                Tape_stop := True
+                            }
+
+                            //save and loads start
+                            when(comx35.io.Addr16 === 0x1672 || comx35.io.Addr16 === 0x1675 || comx35.io.Addr16 ===  0x0e00 || comx35.io.Addr16 === 0x0e03){
+                                Tape_start := True
+                            }
+                        }
                         comx35.io.DataIn := rom.io.douta
                     }elsewhen(comx35.io.Addr16.asUInt >= 0x4000 && comx35.io.Addr16.asUInt < 0xC000){
                         comx35.io.DataIn := ram.io.douta
@@ -183,6 +217,16 @@ class Top_ECP5 extends Component {
                 when(comx35.io.Addr16.asUInt >= 0x4000 && comx35.io.Addr16.asUInt < 0xC000){
                     wea := comx35.io.MWR.rise()
                 }
+
+                when(!Tape_sw.value(0)){
+                    Tape_state := False
+                }elsewhen(Tape_sw.value(0) && Tape_stop){
+                    Tape_state := True
+                }elsewhen(Tape_sw.value(0) && Tape_start){
+                    Tape_state := False
+                }
+
+                io.tape_motor := Tape_sw.value(0) && !Tape_state
             }
         }
 
@@ -275,8 +319,8 @@ class Top_ECP5 extends Component {
     }
 
     val Core25 = new ClockingArea(clk25Domain) {
-        val kbd_sda_b = BufferCC(Core11.areaRst.area40kHz.kbd.io.o_sda_write, True)
-        val kbd_scl_b = BufferCC(Core11.areaRst.area40kHz.kbd.io.o_scl_write, True)
+        //val kbd_sda_b = BufferCC(Core11.areaRst.area40kHz.kbd.io.o_sda_write, True)
+        //val kbd_scl_b = BufferCC(Core11.areaRst.area40kHz.kbd.io.o_scl_write, True)
         val Alive_b = BufferCC(Core14.Alive, U"00000000")
         val rstSi = False
         val SkipOSC = Reg(Bool()) init(False)
@@ -302,10 +346,12 @@ class Top_ECP5 extends Component {
             }
         }
 
-        when(!kbd_sda_b || !area40kHz.si.io.o_sda_write){
+        //when(!kbd_sda_b || !area40kHz.si.io.o_sda_write){
+        when(!area40kHz.si.io.o_sda_write){
             io.sda := False
         }
-        when(!kbd_scl_b || !area40kHz.si.io.o_scl_write){
+        //when(!kbd_scl_b || !area40kHz.si.io.o_scl_write){
+        when(!area40kHz.si.io.o_scl_write){
             io.scl := False
         } 
 
@@ -327,7 +373,7 @@ class Top_ECP5 extends Component {
         val dac = new Delta_Sigma_DAC_SOrder(16)
         val cic = new  CIC_Interpolation(8,4,8,1)
         val downs = new DownSampler(8,8)
-        downs.io.i_data := soundBuff.resize(8)+ (io.tape_led ? S"000001" | S"000000");
+        downs.io.i_data := soundBuff.resize(8) + (io.tape_led ? S"000001" | S"000000");
         cic.io.i_div := downs.io.div
         cic.io.i_data := downs.io.o_data
         dac.io.dac_in := cic.io.o_data.resize(16).asUInt

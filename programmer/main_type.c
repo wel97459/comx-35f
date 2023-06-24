@@ -135,42 +135,46 @@ int main(int argc, char **argv)
     size_t len=0;
     char ch[256], c[16];
 
-    printf("Resetting System.\r\n");
-    write (fd, "f01", 3);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
-    }
-    sleep(1);
+    // printf("Resetting System.\r\n");
+    // write (fd, "f01", 3);
+    // while (strncmp(ch, "Ok.", 3) != 0)
+    // {
+    //     len = readport(ch, 255, fd);
+    // }
+    // sleep(1);
 
-    printf("Booting System.\r\n");
-    write (fd, "f00tt", 5);
-    while (strncmp(ch, "Ok.", 3) != 0)
-    {
-        len = readport(ch, 255, fd);
-    }
-    sleep(2);
-    tcflush(fd, TCIOFLUSH);
+    // printf("Booting System.\r\n");
+    // write (fd, "f00tt", 5);
+    // while (strncmp(ch, "Ok.", 3) != 0)
+    // {
+    //     len = readport(ch, 255, fd);
+    // }
+    // sleep(2);
+    // tcflush(fd, TCIOFLUSH);
 
     printf("Typing...\r\n");
     while(data_len>0){
         data_len = fread(&ch, 1, 255, fp);
         toLower(ch);
+        int tf = 0;
         for(int i = 0;i<data_len;i+=1){
-            write (fd, "t", 1);
-            write (fd, ch+i, 1);
-            printf("%c", ch[i]);
+            if(tf){
+                write (fd, "t", 1);
+                write (fd, ch+i, 1);
+                printf("%c", ch[i]);
 
-            while (strncmp(c, "Ok.", 3) != 0)
-            {
-                readport(c, 256, fd);
+                while (strncmp(c, "Ok.", 3) != 0)
+                {
+                    readport(c, 256, fd);
+                }
+                tcflush(fd, TCIOFLUSH);
+                if(ch[i] == 10 || ch[i] == 13){
+                    msleep(800);
+                }else{
+                    msleep(25);
+                }
             }
-            tcflush(fd, TCIOFLUSH);
-            if(ch[i] == 10 || ch[i] == 13){
-                msleep(500);
-            }else{
-                msleep(25);
-            }
+            if(*(ch+i) == '~') tf=1;
         }
     }
 

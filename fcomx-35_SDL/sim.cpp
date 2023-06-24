@@ -70,8 +70,8 @@ char tmpstr[64];
 
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
-char basicStr[]="\rprr peek(@4281)\r";
-//char basicStr[]="\rruun\r";
+//char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
+char basicStr[]="\rruun\r";
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
 
@@ -182,6 +182,7 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
 
     cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Get Your Gadget.comx");
+   //cxh = LoadComx("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/T3tr1s.comx");
 
     comx = new Vcomx35_test();
     comx_Syms = comx->vlSymsp;
@@ -290,15 +291,15 @@ void sim_run(){
     comx->io_Wait = true;
 
     if (comx->io_MRD == false && comx->io_Addr16 < 0x4000) {
-        comx->io_DataIn = rom[comx->io_Addr16 & 0x3fff];
+        comx->io_DataIn = rom[comx->io_Addr16];
     } else if (comx->io_MRD == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
-        comx->io_DataIn = ram[(comx->io_Addr16 & 0x7fff) - 0x4000];
+        comx->io_DataIn = ram[comx->io_Addr16 - 0x4000];
     } else {
         comx->io_DataIn = 0x00;
     }
     
     if (comx->io_MWR == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
-        ram[(comx->io_Addr16 & 0x7fff) - 0x4000] = comx->io_DataOut;
+        ram[comx->io_Addr16 - 0x4000] = comx->io_DataOut;
     }
 
     if(comx->io_PMWR_== false){
@@ -342,8 +343,7 @@ void sim_run(){
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
 
         if(FrameCount == 90){
-            //loadFile("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/main.comx", &ram[0x401], 0x8000);
-            memcpy(&ram[cxh->address_start-0x4000], &cxh->data[0], cxh->len);
+            memcpy(&ram[cxh->address_start-0x4000], cxh->data, cxh->len);
             memcpy(&ram[DEFUS_ADDR-0x4000], &cxh->defus, 2);
             memcpy(&ram[EOP_ADDR-0x4000], &cxh->eop, 2);
             memcpy(&ram[EOD_ADDR-0x4000], &cxh->eod, 2);

@@ -85,7 +85,11 @@ class ascii2comx extends Component
     }elsewhen(ascii.asUInt  === ' '){keyboardCode_ := 0x5f
     }elsewhen(ascii.asUInt  === '|'){keyboardCode_ := 0x1B
     }elsewhen(ascii.asUInt  === '\b'){keyboardCode_ := 0x86
-    }elsewhen(ascii.asUInt  === '\t'){keyboardCode_ := 0x81
+    }elsewhen(ascii.asUInt  === 0x27){keyboardCode_ := 0x81
+    }elsewhen(ascii.asUInt  === 0x01){keyboardCode_ := 0x82
+    }elsewhen(ascii.asUInt  === 0x02){keyboardCode_ := 0x84
+    }elsewhen(ascii.asUInt  === 0x03){keyboardCode_ := 0x85
+    }elsewhen(ascii.asUInt  === 0x04){keyboardCode_ := 0x83
     }elsewhen(ascii.asUInt < 0x90) {keyboardCode_ := ascii
     }elsewhen(ascii.asUInt >= 0x90) {keyboardCode_ := ascii & 0x7f}
 

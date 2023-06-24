@@ -35,7 +35,7 @@ class comx35_test() extends Component {
         val DataIn = in Bits(8 bit)
         val MRD = out Bool()
         val MWR = out Bool()
-
+        val N = out Bits(3 bit)
         val PMA = out Bits(10 bits)
         val PMWR_ = out Bool() 
         val PMD_In = in Bits(8 bit)
@@ -154,7 +154,7 @@ class comx35_test() extends Component {
         io.Addr16 := clockedArea.CPU.io.Addr16
         io.MRD := clockedArea.CPU.io.MRD
         io.MWR := clockedArea.CPU.io.MWR
-
+        io.N := clockedArea.CPU.io.N
         io.HSync_ := vis70.io.HSync_
         io.VSync_ := vis70.io.VSync_
         io.Display_ := vis70.io.Display_

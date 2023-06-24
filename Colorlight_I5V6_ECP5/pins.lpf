@@ -33,9 +33,17 @@ LOCATE COMP "tape_in" SITE "A2";
     IOBUF PORT "tape_in" IO_TYPE=LVCMOS33;
 LOCATE COMP "tape_out" SITE "K4";
     IOBUF PORT "tape_out" IO_TYPE=LVCMOS33;
-
+LOCATE COMP "tape_sw" SITE "K3";
+    IOBUF PORT "tape_sw" IO_TYPE=LVCMOS33;
+LOCATE COMP "tape_motor" SITE "J5";
+    IOBUF PORT "tape_motor" IO_TYPE=LVCMOS33;
 
 LOCATE COMP "serial_rx" SITE "H18";
     IOBUF PORT "serial_rx" IO_TYPE=LVCMOS33;
 LOCATE COMP "serial_tx" SITE "J17";
     IOBUF PORT "serial_tx" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "ps2_clk" SITE "E1";
+    IOBUF PORT "ps2_clk" IO_TYPE=LVCMOS33;
+LOCATE COMP "ps2_data" SITE "E4";
+    IOBUF PORT "ps2_data" IO_TYPE=LVCMOS33;
