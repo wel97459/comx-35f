@@ -71,7 +71,7 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rruun\r";
+char basicStr[]="\rruun\rs";
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
 
@@ -109,6 +109,10 @@ char ComxKeyboard(char keyCode)
         case '/':keyboardCode_ = 0x5e; break;
         case ' ':keyboardCode_ = 0x5f; break;
         case '\b':keyboardCode_ = 0x86; break;
+        case 0x1:keyboardCode_ = 0x82; break;
+        case 0x2:keyboardCode_ = 0x84; break;
+        case 0x3:keyboardCode_ = 0x85; break;
+        case 0x4:keyboardCode_ = 0x83; break;
     }
     if (keyboardCode_ >= 0x90)  keyboardCode_ &= 0x7f;
     return keyboardCode_;
@@ -324,7 +328,7 @@ void sim_run(){
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     } 
 
-    if(FrameCount >= 84 && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
+    if(((FrameCount >= 84 && FrameCount <= 105) || FrameCount >= 160) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
             comx->io_KBD_Latch = true;
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     }

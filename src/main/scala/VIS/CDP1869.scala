@@ -158,7 +158,19 @@ class CDP1869 extends Component {
     io.DataOut := 0x00
 
     io.PMSEL := PMSEL
-    io.PMA := io.Display_ ? ((CmemAccessMode) ? PMA_Reg(9 downto 0) | ((PMSEL) ? Addr16(9 downto 0) | 0x000)) | RPA.asBits(9 downto 0)
+    io.PMA := 0x000
+//    io.PMA := io.Display_ ? ((CmemAccessMode) ? PMA_Reg(9 downto 0) | ((PMSEL) ? Addr16(9 downto 0) | 0x000)) | RPA.asBits(9 downto 0)
+
+    when(io.Display_){
+        when(CmemAccessMode && !PMSEL){
+            io.PMA := PMA_Reg(9 downto 0) 
+        }otherwise{
+            io.PMA := Addr16(9 downto 0)
+        }
+    }otherwise{
+        io.PMA := RPA.asBits(9 downto 0)
+    }
+
     io.PMWR_ := (io.Display_ & PMSEL) ? io.MWR | True
 
     io.CMSEL := CMSEL
