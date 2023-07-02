@@ -71,10 +71,13 @@ class CDP1869 extends Component {
     val RCA_7 = RCA < 7 && NineLine
     val RCA_8 = RCA < 8 && !NineLine
 
-    val RemapRCA = FresVert ? RCA.asBits(3 downto 0) | RCA.asBits(4 downto 1)
-
     val PMSEL = (UpperAddr.asUInt >= 0xf8) && io.Display_
     val CMSEL = (UpperAddr.asUInt >= 0xf4) && (UpperAddr.asUInt <= 0xf7) && io.Display_
+
+    val RemapRCA = FresVert ? RCA.asBits(3 downto 0) | RCA.asBits(4 downto 1)
+    val CMAddr = io.Display_ ? ((CMSEL) ? Addr16(3 downto 0) | 0x0) | RemapRCA(3 downto 0)
+    val PMAddr = B"11'h0000"
+
 
     when(io.Display_){
         RCA := 0
@@ -99,15 +102,26 @@ class CDP1869 extends Component {
         }
     }
 
+    when(io.Display_){
+        when(CmemAccessMode && !PMSEL){
+            PMAddr := PMA_Reg
+        }otherwise{
+            PMAddr := Addr16(10 downto 0)
+        }
+    }otherwise{
+        PMAddr := RPA.asBits(10 downto 0)
+    }
 
     when(io.TPA.rise() || io.TPB.rise() || io.TPA.fall() || io.TPB.fall()){
         ToneDiv := ToneDiv + 1
     }
-
+    
+    val ToneWave = Reg(Bool()) init(False) 
     val Tone = SN_Reg(14 downto 8)
     val Tone_Off = SN_Reg(7)
     val Tone_Freq = SN_Reg(6 downto 4)
     val Tone_Amp = B"00" ## SN_Reg(3 downto 0)
+    val Tone_Amp_Out = Reg(Bits(6 bits)) init(0)
 
     val Tone_Clk = Tone_Freq.mux(
         0 -> ToneDiv(7),
@@ -136,11 +150,22 @@ class CDP1869 extends Component {
     )
 
     when(Tone_Clk.rise()){
-        when(ToneCounter < Tone.asUInt){
+        when(Tone.asUInt === 1 && Tone_Freq.asUInt === 7) {
+            ToneWave := True
+            Tone_Amp_Out := Tone_Amp
+        }elsewhen(Tone.asUInt =/= 0 && Tone_Freq.asUInt =/= 0){
+            ToneWave := False
+        }
+
+        when(ToneWave){
+            ToneCounter := 0
+            Tone_FF := Tone_Amp.asUInt > 0
+        }elsewhen(ToneCounter < Tone.asUInt){
             ToneCounter := ToneCounter + 1
         }otherwise{
             ToneCounter := 0
             Tone_FF := !Tone_FF
+            Tone_Amp_Out := Tone_Amp
         }
     }    
     val WN_LFSR_next = WN_LFSR(14 downto 0) ## (WN_LFSR(8) ^ WN_LFSR(12))
@@ -148,36 +173,22 @@ class CDP1869 extends Component {
         WN_LFSR := WN_LFSR_next
     }
 
-    val ToneOut = (Tone_FF ? (Tone_Amp.resize(6).asSInt) | (-Tone_Amp.resize(6).asSInt))
+    val ToneOut = (Tone_FF ? (Tone_Amp_Out.resize(6).asSInt) | (-Tone_Amp_Out.resize(6).asSInt))
     val LFSROut = (WN_LFSR(11) ? (WN_Amp.resize(6).asSInt) | (-WN_Amp.resize(6).asSInt))
-
-    val sound_mix = (ToneOut + LFSROut)
 
     //Outputs
     io.N3_ := (io.N =/= 3)
     io.DataOut := 0x00
 
     io.PMSEL := PMSEL
-    io.PMA := 0x000
-//    io.PMA := io.Display_ ? ((CmemAccessMode) ? PMA_Reg(9 downto 0) | ((PMSEL) ? Addr16(9 downto 0) | 0x000)) | RPA.asBits(9 downto 0)
-
-    when(io.Display_){
-        when(CmemAccessMode && !PMSEL){
-            io.PMA := PMA_Reg(9 downto 0) 
-        }otherwise{
-            io.PMA := Addr16(9 downto 0)
-        }
-    }otherwise{
-        io.PMA := RPA.asBits(9 downto 0)
-    }
-
-    io.PMWR_ := (io.Display_ & PMSEL) ? io.MWR | True
+    io.PMWR_ := PMSEL ? io.MWR | True
+    io.PMA := PMAddr(9 downto 0)
 
     io.CMSEL := CMSEL
-    io.CMWR_ := (io.Display_ & CMSEL) ? io.MWR | True
-    io.CMA := io.Display_ ? ((CMSEL) ? Addr16(2 downto 0) | 0x0) | RemapRCA(2 downto 0)
+    io.CMWR_ := CMSEL ? io.MWR | True
+    io.CMA := CMAddr(2 downto 0)
 
-    io.CMA3_PMA10 := DoublePage ? RPA(10) | RemapRCA.asBits(3)
+    io.CMA3_PMA10 := DoublePage ? PMAddr(10) | CMAddr(3)
 
-    io.Sound := sound_mix
+    io.Sound := (ToneOut + LFSROut)
 }

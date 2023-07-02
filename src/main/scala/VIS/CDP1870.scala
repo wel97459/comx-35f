@@ -71,7 +71,7 @@ class CDP1870 extends Component{
         val HorizontalBlanking = HorizontalCounter <= 5 || HorizontalCounter >= 54
         val VerticalBlanking = VerticalCounter <= 10 || VerticalCounter >= 252
 
-        val HDisplay = HorizontalCounter >= 10 && HorizontalCounter < 50
+        val HDisplay = HorizontalCounter >= 9 && HorizontalCounter < 49
 
         val DotClk6 = TimingCounter === 0 || TimingCounter === 6
         val DotClk12 = TimingCounter === 0
@@ -109,7 +109,7 @@ class CDP1870 extends Component{
                 HorizontalCounter := HorizontalCounter + 1
             }
         }
-
+        
         when(PixelClk){
             when(!AddSTB_){
                 PixelShifter := io.CDB_in

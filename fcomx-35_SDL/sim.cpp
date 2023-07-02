@@ -71,7 +71,8 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rruun\rs";
+char basicStr[]="\rruun\rn";
+
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
 
@@ -185,7 +186,7 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
 
-    cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Get Your Gadget.comx");
+    cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Happiehap\ 2.comx");
    //cxh = LoadComx("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/T3tr1s.comx");
 
     comx = new Vcomx35_test();
@@ -328,7 +329,7 @@ void sim_run(){
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     } 
 
-    if(((FrameCount >= 84 && FrameCount <= 105) || FrameCount >= 160) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
+    if(((FrameCount >= 84 && FrameCount <= 105) || FrameCount >= 142) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
             comx->io_KBD_Latch = true;
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
     }

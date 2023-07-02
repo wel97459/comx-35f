@@ -153,10 +153,11 @@ int main(int argc, char **argv)
     // tcflush(fd, TCIOFLUSH);
 
     printf("Typing...\r\n");
+    int tf = 0;
     while(data_len>0){
         data_len = fread(&ch, 1, 255, fp);
+        printf("Got: %i", data_len);
         toLower(ch);
-        int tf = 0;
         for(int i = 0;i<data_len;i+=1){
             if(tf){
                 write (fd, "t", 1);
