@@ -4,7 +4,7 @@ import java.io.{BufferedReader, FileReader}
 import spinal.core._
 import spinal.core.sim._
 import MySpinalHardware._
-
+import Cards._
 import scala.util.Random
 import scala.util.control._
 import java.nio.file.{Files, Paths}
@@ -36,6 +36,7 @@ class comx35_test() extends Component {
         val MRD = out Bool()
         val MWR = out Bool()
         val N = out Bits(3 bit)
+
         val PMA = out Bits(10 bits)
         val PMWR_ = out Bool() 
         val PMD_In = in Bits(8 bit)
@@ -71,6 +72,13 @@ class comx35_test() extends Component {
         val vI = in UInt(8 bits)
         val vQ = in UInt(8 bits)
         val vY = in UInt(8 bits)
+
+        val ExtRom = out Bool()
+        val Card_DataOut = out Bits(8 bits)
+        val FDCRom = new Bundle {
+            val DataIn = in Bits(8 bit)
+            val Addr = out Bits(12 bit)
+        }
     }
 
     //Components
@@ -78,6 +86,7 @@ class comx35_test() extends Component {
     val vis70 = new VIS.CDP1870()
     val kbd71 = new VIS.CDP1871()
 
+    val fdc = new FDC_Card()
     val clockedArea = new ClockEnableArea(vis70.io.CPUCLK) {
         val CPU = new Spinal1802.Spinal1802()
         //val CPU = new new1802.new1802()
@@ -129,8 +138,21 @@ class comx35_test() extends Component {
 
         clockedArea.CPU.io.Wait_n := io.Wait
         clockedArea.CPU.io.Clear_n := io.Start
-        clockedArea.CPU.io.EF_n := io.Tape_in ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
+        clockedArea.CPU.io.EF_n := (io.  && fdc.io.EF4_) ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
         clockedArea.CPU.io.Interrupt_n := INT_FF
+
+        fdc.io.Addr16 := clockedArea.CPU.io.Addr16
+        fdc.io.DataIn := clockedArea.CPU.io.DataOut
+        io.Card_DataOut := fdc.io.DataOut
+        fdc.io.MRD := clockedArea.CPU.io.MRD
+        fdc.io.MWR := clockedArea.CPU.io.MWR
+        fdc.io.TPB := clockedArea.CPU.io.TPB
+        fdc.io.N := clockedArea.CPU.io.N
+        fdc.io.Q := clockedArea.CPU.io.Q
+        io.ExtRom := fdc.io.ExtRom
+        io.FDCRom.Addr := fdc.io.FDCRom.Addr 
+        fdc.io.FDCRom.DataIn :=  io.FDCRom.DataIn
+
     //Latches
         when(vis70.io.PreDisplay_.rise()){
             INT_FF := NTSC_PAL_FlipFlop

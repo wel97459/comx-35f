@@ -38,6 +38,23 @@ LOCATE COMP "tape_sw" SITE "K3";
 LOCATE COMP "tape_motor" SITE "J5";
     IOBUF PORT "tape_motor" IO_TYPE=LVCMOS33;
 
+LOCATE COMP "floppy_motor_on" SITE "E5";
+    IOBUF PORT "floppy_motor_on" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_drive_0" SITE "F4";
+    IOBUF PORT "floppy_drive_0" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_drive_1" SITE "F5";
+    IOBUF PORT "floppy_drive_1" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_direction" SITE "E6";
+    IOBUF PORT "floppy_direction" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_step" SITE "G5";
+    IOBUF PORT "floppy_step" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_write_data" SITE "D16";
+    IOBUF PORT "floppy_write_data" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_write_gate" SITE "D18";
+    IOBUF PORT "floppy_write_gate" IO_TYPE=LVCMOS33;
+LOCATE COMP "floppy_head_select" SITE "D17";
+    IOBUF PORT "floppy_head_select" IO_TYPE=LVCMOS33;
+
 LOCATE COMP "serial_rx" SITE "H18";
     IOBUF PORT "serial_rx" IO_TYPE=LVCMOS33;
 LOCATE COMP "serial_tx" SITE "J17";

@@ -41,8 +41,10 @@ Uint64 main_time=0;
 Uint64 main_trace=0;
 Uint8 trace=1;
 
+
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
+Uint8 fdc[0x2000];
 Uint8 pram[0x400];
 Uint8 cram[0x400];
 
@@ -59,6 +61,8 @@ Uint16 R3_Last=0;
 Uint16 ADDR_Last=0;
 Uint8 colorBurst=1;
 
+Uint8 FDC_Latch=0;
+
 Uint16 drawX, drawY, scanX;
 
 Uint16 FrameCount = 0;
@@ -71,7 +75,7 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rruun\rn";
+char basicStr[]="\rdoos cat\r";
 
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
@@ -185,8 +189,9 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     printf("Started.\n");
     genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
+    loadFile("../data/fdc.bin", fdc, 0x2000);
 
-    cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Happiehap\ 2.comx");
+    //cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Happiehap\ 2.comx");
    //cxh = LoadComx("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/T3tr1s.comx");
 
     comx = new Vcomx35_test();
@@ -294,15 +299,23 @@ void sim_run(){
     comx->reset = !(main_time>10);
     comx->io_Start = (main_time>15);
     comx->io_Wait = true;
+    comx->io_Tape_in = true; 
+    comx->io_FDCRom_DataIn = fdc[comx->io_FDCRom_Addr];
 
-    if (comx->io_MRD == false && comx->io_Addr16 < 0x4000) {
+    if(comx->io_MRD == false && comx->io_ExtRom ){
+        comx->io_DataIn = comx->io_Card_DataOut;
+    } else if (comx->io_MRD == false && comx->io_Addr16 <= 0x3FFF) {
         comx->io_DataIn = rom[comx->io_Addr16];
-    } else if (comx->io_MRD == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
+    } else if (comx->io_MRD == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 <= 0xBFFF) {
         comx->io_DataIn = ram[comx->io_Addr16 - 0x4000];
+    } else if (comx->io_MRD == false && comx->io_Addr16 >= 0xC000 && comx->io_Addr16 <= 0xDFFF) {
+        comx->io_DataIn = comx->io_Card_DataOut;
+    }else if(comx->io_N == 2){
+        comx->io_DataIn = comx->io_Card_DataOut;
     } else {
         comx->io_DataIn = 0x00;
     }
-    
+
     if (comx->io_MWR == false && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
         ram[comx->io_Addr16 - 0x4000] = comx->io_DataOut;
     }
@@ -339,6 +352,7 @@ void sim_run(){
 
     if(!comx->io_VSync_ && VSync_Edge){
         sim_draw();
+        comx->io_testing = FrameCount;
         sprintf(tmpstr,"Frames/Frame%04i.png",FrameCount++);
         Uint64 ticks = SDL_GetTicks64();
         //printf("Frame: %i\n", FrameCount);
@@ -347,20 +361,20 @@ void sim_run(){
         vidTime = 0;
         memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
 
-        if(FrameCount == 90){
-            memcpy(&ram[cxh->address_start-0x4000], cxh->data, cxh->len);
-            memcpy(&ram[DEFUS_ADDR-0x4000], &cxh->defus, 2);
-            memcpy(&ram[EOP_ADDR-0x4000], &cxh->eop, 2);
-            memcpy(&ram[EOD_ADDR-0x4000], &cxh->eod, 2);
-            memcpy(&ram[STRING_ADDR-0x4000], &cxh->eod, 2);
-            memcpy(&ram[ARRAY_VALUE_ADDR-0x4000], &cxh->array, 2);
+        // if(FrameCount == 90){
+        //     memcpy(&ram[cxh->address_start-0x4000], cxh->data, cxh->len);
+        //     memcpy(&ram[DEFUS_ADDR-0x4000], &cxh->defus, 2);
+        //     memcpy(&ram[EOP_ADDR-0x4000], &cxh->eop, 2);
+        //     memcpy(&ram[EOD_ADDR-0x4000], &cxh->eod, 2);
+        //     memcpy(&ram[STRING_ADDR-0x4000], &cxh->eod, 2);
+        //     memcpy(&ram[ARRAY_VALUE_ADDR-0x4000], &cxh->array, 2);
 
-            saveFile("../data/debug_ram.bin", ram, 0x8000);
-        } 
-        if(FrameCount == 160){
-            saveFile("../data/debug_ram_CA.bin", cram, 0x400);
-            saveFile("../data/debug_ram_PA.bin", pram, 0x400);
-        } 
+        //     saveFile("../data/debug_ram.bin", ram, 0x8000);
+        // } 
+        // if(FrameCount == 160){
+        //     saveFile("../data/debug_ram_CA.bin", cram, 0x400);
+        //     saveFile("../data/debug_ram_PA.bin", pram, 0x400);
+        // } 
     }
     doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
     if(trace && 0){

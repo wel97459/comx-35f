@@ -46,6 +46,18 @@ class Top_ECP5 extends Component {
 
         val ps2_clk = in Bool()
         val ps2_data = in Bool()
+
+        val floppy = new Bundle{
+            val motor_on = out Bool() 
+            val drive_0 = out Bool() 
+            val drive_1 = out Bool() 
+            val direction = out Bool() 
+            val step = out Bool() 
+            val write_data = out Bool() 
+            val write_gate = out Bool() 
+            val head_select = out Bool() 
+        }
+
     }
     noIoPrefix()
 
@@ -115,6 +127,7 @@ class Top_ECP5 extends Component {
             a2c.ascii := pro.io.keys.payload
             
             val areaDiv4 = new SlowArea(2) {
+                val Floppy = Reg(Bits(8 bits)) init(0)
                 val Tape_in = BufferCC(!io.tape_in, True)
 
                 val Tape_sw_cc = BufferCC(!io.tape_sw, True)
@@ -135,6 +148,7 @@ class Top_ECP5 extends Component {
                 }elsewhen(Tape_Filter === B"8'h00"){
                     Tape_FF := False
                 }
+
                 val comx35 = new comx35_test()
                 comx35.io.Start := !pro.io.FlagOut(1)
                 comx35.io.Wait := !pro.io.FlagOut(2)
@@ -218,6 +232,10 @@ class Top_ECP5 extends Component {
                     wea := comx35.io.MWR.rise()
                 }
 
+                when(comx35.io.Addr16.asUInt === 0xC000 && comx35.io.MWR.rise()){
+                    Floppy := comx35.io.DataOut
+                }
+
                 when(!Tape_sw.value(0)){
                     Tape_state := False
                 }elsewhen(Tape_sw.value(0) && Tape_stop){
@@ -227,6 +245,14 @@ class Top_ECP5 extends Component {
                 }
 
                 io.tape_motor := Tape_sw.value(0) && !Tape_state
+                io.floppy.motor_on := !Floppy(0)
+                io.floppy.drive_0 := !Floppy(1)
+                io.floppy.drive_1 := !Floppy(2)
+                io.floppy.direction := !Floppy(3)
+                io.floppy.step := !Floppy(4)
+                io.floppy.write_data := True
+                io.floppy.write_gate := True
+                io.floppy.head_select := !Floppy(7)
             }
         }
 
