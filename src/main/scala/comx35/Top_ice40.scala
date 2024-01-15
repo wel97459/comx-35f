@@ -5,7 +5,7 @@ import spinal.lib.blackbox.lattice.ice40._
 import MySpinalHardware._
 import VIS._
 
-import comx35.Config_ice40
+//import comx35.Config_ice40
 class Top_ice40 extends Component {
     val io = new Bundle{
         val reset_ = in Bool()

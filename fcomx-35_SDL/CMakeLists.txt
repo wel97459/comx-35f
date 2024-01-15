@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
-  SET (CMAKE_C_COMPILER   "/usr/bin/clang")
-  SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
- #llvm-profdata -fprofile-use=default.profdata -fprofile-generate
+ # SET (CMAKE_C_COMPILER   "/usr/bin/clang")
+ # SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
+ # llvm-profdata -fprofile-use=default.profdata -fprofile-generate
  #  set(MYAPP_PGO "-fprofile-generate") 
  #  set(MYAPP_PGO "-fprofile-use=./default.profdata") 
  
@@ -38,7 +38,7 @@ add_library(dt_lib SHARED
 )
 
 #verilate(dt_lib SOURCES ../comx35_test.v)
-verilate(dt_lib SOURCES ./gen/comx35_test.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-savable" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast VERILATOR_ARGS -prof-cfuncs)
+verilate(dt_lib SOURCES ./rtl/comx35_test.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-savable" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast VERILATOR_ARGS -prof-cfuncs)
 
 add_executable(${CMAKE_PROJECT_NAME}
   main.cpp

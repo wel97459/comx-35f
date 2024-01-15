@@ -195,7 +195,7 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
    //cxh = LoadComx("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/T3tr1s.comx");
 
     comx = new Vcomx35_test();
-    comx_Syms = comx->vlSymsp;
+    //comx_Syms = comx->vlSymsp;
 
 	#ifdef TRACE
 		Verilated::traceEverOn(true);
@@ -377,6 +377,7 @@ void sim_run(){
         // } 
     }
     doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
+
     if(trace && 0){
         if(P_Last != comx_Syms->TOP__comx35_test__clockedArea_CPU.__Vdly__P)
         {
@@ -396,6 +397,9 @@ void sim_run(){
             }
             ADDR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16;
         }
+        P_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.P;
+        MW_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR;
+        MR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD;
     }
     Display_Edge = comx->io_Display_;
     HSync_Edge = comx->io_HSync_;
@@ -403,9 +407,6 @@ void sim_run(){
     Ready_Edge = comx->io_KBD_Ready;
     Burst_Edge = comx->io_Burst;
     Video_Last = comx->io_Video;
-    P_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.P;
-    MW_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR;
-    MR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD;
     main_time++;
     comx->clk = 1;
     comx->eval();

@@ -85,7 +85,7 @@ int initVideo()
 		return 0;
 	}
 
-	window = SDL_CreateWindow("SDL2 - Verilator - SpinalHDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+	window = SDL_CreateWindow("SDL2 - Verilator - SpinalHDL V1.1", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
 	if (!window) {
 		printf("Can't create window: %s\n", SDL_GetError());
 		return 0;

@@ -138,7 +138,7 @@ class comx35_test() extends Component {
 
         clockedArea.CPU.io.Wait_n := io.Wait
         clockedArea.CPU.io.Clear_n := io.Start
-        clockedArea.CPU.io.EF_n := (io.  && fdc.io.EF4_) ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
+        clockedArea.CPU.io.EF_n := (fdc.io.EF4_) ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
         clockedArea.CPU.io.Interrupt_n := INT_FF
 
         fdc.io.Addr16 := clockedArea.CPU.io.Addr16
