@@ -1,21 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Mon Jan 15 05:48:19 2024
+[*] Mon Jan 15 18:36:21 2024
 [*]
-[dumpfile] "/run/media/deck/dac1d3d3-4c6b-443d-9c37-cf5660eda75e/Projects/SpinalHDL/comx-35f/fcomx-35_SDL/simx.fst"
-[dumpfile_mtime] "Mon Jan 15 03:08:57 2024"
-[dumpfile_size] 177335276
-[savefile] "/run/media/deck/dac1d3d3-4c6b-443d-9c37-cf5660eda75e/Projects/SpinalHDL/comx-35f/fcomx-35_SDL/debug_fdc.gtkw"
-[timestart] 29663000
-[size] 1280 717
+[dumpfile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/simx.fst"
+[dumpfile_mtime] "Mon Jan 15 17:53:59 2024"
+[dumpfile_size] 295471441
+[savefile] "/home/winston/Projects/SpinalHDL/fcomx-35/fcomx-35_SDL/debug_fdc.gtkw"
+[timestart] 30479400
+[size] 1920 1056
 [pos] -1 -1
-*-19.174471 30698649 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-17.174471 30841800 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.comx35_test.
-[sst_width] 222
+[sst_width] 316
 [signals_width] 377
 [sst_expanded] 1
-[sst_vpaned_height] 258
+[sst_vpaned_height] 537
 @28
 TOP.reset
 TOP.clk
@@ -56,15 +56,13 @@ TOP.comx35_test.kbd71.io_Ready
 -FDC
 @820
 TOP.comx35_test.fdc.fsm_stateReg_string[143:0]
+@22
+TOP.comx35_test.fdc.IndexPulseCount_value[3:0]
+TOP.comx35_test.fdc.FDC_DR[7:0]
+@29
+TOP.comx35_test.fdc.FDC_S1_DRQ
 @28
 TOP.comx35_test.fdc.IndexPulseCounter_willOverflowIfInc
-TOP.comx35_test.fdc.FDC_Read_Status
-TOP.comx35_test.fdc.FDC_Read_Data
-TOP.comx35_test.fdc.FDC_Write_Data
-TOP.comx35_test.fdc.FDC_Read_Sector
-TOP.comx35_test.fdc.FDC_Write_Sector
-TOP.comx35_test.fdc.FDC_Read_Track
-TOP.comx35_test.fdc.FDC_Write_Track
 TOP.comx35_test.fdc_io_EF4_
 TOP.comx35_test.io_Tape_in
 @22
@@ -93,9 +91,8 @@ TOP.comx35_test.fdc.FDC_Status[7:0]
 -group_end
 @28
 TOP.comx35_test.fdc.FDC_CMD_Loaded_regNext
-@23
-TOP.comx35_test.fdc.FDC_Command[7:0]
 @22
+TOP.comx35_test.fdc.FDC_Command[7:0]
 TOP.comx35_test.fdc.FDC_Command_Type[3:0]
 TOP.comx35_test.fdc.FDC_Track[7:0]
 TOP.comx35_test.fdc.FDC_Sector[7:0]
