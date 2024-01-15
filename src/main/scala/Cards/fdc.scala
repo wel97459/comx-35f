@@ -29,7 +29,7 @@ class FDC_Card extends Component
 
     val F3_Latch = Reg(Bits(8 bits)) init(0)
     val F5_addr = F3_Latch(1 downto 0)
-
+    
     val FDC_S0_Busy = Reg(Bool()) init(False)
     val FDC_S1_DRQ = Reg(Bool()) init(False)
     val FDC_S2_LostData = Reg(Bool()) init(False)
@@ -38,18 +38,19 @@ class FDC_Card extends Component
     val FDC_S5_WriteFault = Reg(Bool()) init(False)
     val FDC_S6_WriteProtect = Reg(Bool()) init(False)
     val FDC_S7_NotReady = Reg(Bool()) init(False)
-
+    
     val FDC_INTRQ = Reg(Bool()) init(False)
-
+    
     val FDC_Status = FDC_S7_NotReady ## 
-                     FDC_S6_WriteProtect ## 
-                     FDC_S5_WriteFault ## 
-                     FDC_S4_RNF ## 
-                     FDC_S3_CRC_Error ##
-                     FDC_S2_LostData ##
-                     FDC_S1_DRQ ##
-                     FDC_S0_Busy
-
+    FDC_S6_WriteProtect ## 
+    FDC_S5_WriteFault ## 
+    FDC_S4_RNF ## 
+    FDC_S3_CRC_Error ##
+    FDC_S2_LostData ##
+    FDC_S1_DRQ ##
+    FDC_S0_Busy
+    
+    val FDC_DR = Reg(Bits(8 bits)) init(0)
     val FDC_Command = Reg(UInt(8 bits)) init(0)
     val FDC_Track = Reg(Bits(8 bits)) init(0)
     val FDC_Sector = Reg(Bits(8 bits)) init(0)
@@ -68,16 +69,15 @@ class FDC_Card extends Component
     val FDC_Command_Loaded = False
     val FDC_CMD_Loaded = RegNext(FDC_Command_Loaded)
 
-    val FDC_Data_Loaded = RegNext(Bool()) init(False)
-
     val FDC_Command_Type = FDC_Command(7 downto 4)
 
     val IndexPulseCounter = CounterFreeRun(100000)
     val IndexPulseCount = Counter(10)
-
+    val IndexPulseLatch = Reg(Bool()) init(False)
     when(IndexPulseCounter.willOverflowIfInc)
     {
         IndexPulseCount.increment()
+        IndexPulseLatch := True
     }
 
     io.DataOut := 0
@@ -100,7 +100,7 @@ class FDC_Card extends Component
                 FDC_Write_Sector := True
             }elsewhen(F5_addr === 3){
                 FDC_Data := io.DataIn
-                FDC_Data_Loaded := True
+                FDC_S1_DRQ := False
                 FDC_Write_Data := True
             }
         }
@@ -147,7 +147,7 @@ class FDC_Card extends Component
                 FDC_S1_DRQ := False
                 FDC_S0_Busy := False
 
-                FDC_Data_Loaded := False
+                FDC_DR := 0
                 FDC_INTRQ := False
                 goto(Wait4CMD)
             }
@@ -163,7 +163,14 @@ class FDC_Card extends Component
                     IndexPulseCounter.clear()
                     IndexPulseCount.clear()
                     when(FDC_Command === 0xF4){
-                        FDC_Data_Loaded := False
+                        FDC_S0_Busy := True
+                        FDC_S1_DRQ := True
+                        FDC_S2_LostData := False
+                        FDC_S4_RNF := False
+                        FDC_S5_WriteFault := False
+                        FDC_S6_WriteProtect := False
+            
+                        FDC_INTRQ := False
                         goto(Write_Track_Start)
                     }
                 }
@@ -174,25 +181,53 @@ class FDC_Card extends Component
         {
             whenIsActive
             {
-                FDC_S0_Busy := True
-                FDC_S1_DRQ := True
-                FDC_S2_LostData := False
-                FDC_S4_RNF := False
-                FDC_S5_WriteFault := False
-                FDC_S6_WriteProtect := False
-
-                FDC_INTRQ := False
-                when(IndexPulseCounter.willOverflowIfInc && IndexPulseCount > 1 && !FDC_Data_Loaded){
+                when(IndexPulseCounter.willOverflowIfInc && IndexPulseCount > 0 && FDC_S1_DRQ){
                     goto(Write_Track_Failed)
+                }elsewhen(IndexPulseCounter.willOverflowIfInc && !FDC_S1_DRQ){
+                    goto(Write_Track_Write)
+                    IndexPulseLatch := False
                 }
             }
         }
 
+        val Write_Track_Write: State = new State
+        {
+            whenIsActive
+            {
+                when(IndexPulseLatch){
+                    goto(Write_Track_Done)
+                }elsewhen(!IndexPulseLatch && FDC_S1_DRQ){
+                    FDC_S2_LostData := True
+                    FDC_DR := 0
+                    goto(Write_Track_Wait)
+                }otherwise{
+                    FDC_DR := FDC_Data
+                    FDC_S1_DRQ := True
+                    goto(Write_Track_Wait)
+                }
+            }
+        }
+
+        val Write_Track_Wait: State = new StateDelay(64)
+        {
+            whenCompleted {
+                goto(Write_Track_Write)
+            }
+        }
         val Write_Track_Failed: State = new State
         {
             whenIsActive
             {
-                FDC_S2_LostData := True
+                //FDC_S2_LostData := True
+                FDC_INTRQ := True
+                goto(Wait4CMD)
+            }
+        }
+
+        val Write_Track_Done: State = new State
+        {
+            whenIsActive
+            {
                 FDC_INTRQ := True
                 goto(Wait4CMD)
             }
