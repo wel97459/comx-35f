@@ -1,1 +1,0 @@
-../../simWorkspace/comx35_test/rtl/comx35_test.v
