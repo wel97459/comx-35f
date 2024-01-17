@@ -23,7 +23,7 @@ class FDC_Card extends Component
         val ExtRom = out Bool()
         val FDCRom = new Bundle {
             val DataIn = in Bits(8 bit)
-            val Addr = out Bits(12 bit)
+            val Addr = out Bits(13 bit)
         }
     }
 
@@ -52,7 +52,9 @@ class FDC_Card extends Component
     
     val FDC_DR = Reg(Bits(8 bits)) init(0)
     val FDC_Command = Reg(UInt(8 bits)) init(0)
-    val FDC_Track = Reg(Bits(8 bits)) init(0)
+
+    val FDC_Direction = Reg(Bool()) init(False)
+    val FDC_Track = Reg(UInt(8 bits)) init(0)
     val FDC_Sector = Reg(Bits(8 bits)) init(0)
     val FDC_Data = Reg(Bits(8 bits)) init(0)
 
@@ -93,7 +95,7 @@ class FDC_Card extends Component
                 FDC_Command := io.DataIn.asUInt
                 FDC_Command_Loaded := True
             }elsewhen(F5_addr === 1){
-                FDC_Track := io.DataIn
+                FDC_Track := io.DataIn.asUInt
                 FDC_Write_Track := True
             }elsewhen(F5_addr === 2){
                 FDC_Sector := io.DataIn
@@ -104,14 +106,14 @@ class FDC_Card extends Component
                 FDC_Write_Data := True
             }
         }
-    }elsewhen(!io.MRD && io.Addr16.asUInt >= 0x0D00 && io.Addr16.asUInt <= 0x0DFF){
+    }elsewhen(!io.MRD && io.Addr16.asUInt >= 0x0DD0 && io.Addr16.asUInt <= 0x0DDF){
         io.ExtRom := True
         io.DataOut := io.FDCRom.DataIn
-        io.FDCRom.Addr := (io.Addr16.asUInt - 0xC87).asBits(11 downto 0)
+        io.FDCRom.Addr := (io.Addr16.asUInt).asBits(12 downto 0)
     }elsewhen(!io.MRD && io.Addr16.asUInt >= 0xC000 && io.Addr16.asUInt <= 0xDFFF){
         io.ExtRom := True
         io.DataOut := io.FDCRom.DataIn
-        io.FDCRom.Addr := (io.Addr16.asUInt - 0xC000).asBits(11 downto 0)
+        io.FDCRom.Addr := io.Addr16.asUInt.asBits(12 downto 0)
     }
 
     when(io.MRD){
@@ -122,7 +124,7 @@ class FDC_Card extends Component
                 io.DataOut := FDC_Status
                 FDC_Read_Status := True
             }elsewhen(F5_addr === 1){
-                io.DataOut := FDC_Track
+                io.DataOut := FDC_Track.asBits
                 FDC_Read_Track := True
             }elsewhen(F5_addr === 2){
                 io.DataOut := FDC_Sector
@@ -146,7 +148,7 @@ class FDC_Card extends Component
                 FDC_S2_LostData := False
                 FDC_S1_DRQ := False
                 FDC_S0_Busy := False
-
+                FDC_Direction := False
                 FDC_DR := 0
                 FDC_INTRQ := False
                 goto(Wait4CMD)
@@ -162,7 +164,15 @@ class FDC_Card extends Component
                 {
                     IndexPulseCounter.clear()
                     IndexPulseCount.clear()
-                    when(FDC_Command === 0xF4){
+                    when(FDC_Command(7) === False){
+                        FDC_S0_Busy := True
+                        FDC_S1_DRQ := False
+                        FDC_S3_CRC_Error := False
+                        FDC_S4_RNF := False
+
+                        FDC_INTRQ := False
+                        goto(Seek_Start)
+                    }elsewhen(FDC_Command === 0xF4){
                         FDC_S0_Busy := True
                         FDC_S1_DRQ := True
                         FDC_S2_LostData := False
@@ -176,6 +186,99 @@ class FDC_Card extends Component
                 }
             }
         }
+        
+        val Seek_Start: State = new State
+        {
+            whenIsActive
+            {
+                when(IndexPulseCount > 5 || FDC_Command(3))
+                {
+                    when(FDC_Command(7 downto 4) === 0){
+                        FDC_Track := 0xFF
+                        FDC_DR := 0
+                        goto(Seek_StepA)
+                    }elsewhen(FDC_Command(7 downto 4) === 1){
+                        FDC_DR := 0
+                        goto(Seek_StepA)
+                    }elsewhen(FDC_Command(7 downto 5) === 1){
+                        goto(Seek_StepU)
+                    }elsewhen(FDC_Command(7 downto 5) === 2){
+                        FDC_Direction := True
+                        goto(Seek_StepU)
+                    }elsewhen(FDC_Command(7 downto 5) === 3){
+                        FDC_Direction := False
+                        goto(Seek_StepU)
+                    }
+
+                }
+            }
+        }
+        val Seek_StepA: State = new State
+        {
+            whenIsActive
+            {
+                when(FDC_Track === FDC_DR.asUInt)
+                {
+                    goto(Seek_StepD)
+                }elsewhen(FDC_DR.asUInt > FDC_Track){
+                    FDC_Direction := True
+                    goto(Seek_StepB)
+                }elsewhen(FDC_DR.asUInt < FDC_Track){
+                    FDC_Direction := False
+                    goto(Seek_StepB)
+                }
+            }
+        } 
+        
+        val Seek_StepU: State = new State
+        {
+            whenIsActive
+            {
+                when(FDC_Command(4)){
+                    goto(Seek_StepB)
+                }otherwise{
+                    goto(Seek_StepC)
+                }
+            }
+        } 
+        val Seek_StepB: State = new State
+        {
+            whenIsActive
+            {
+                when(FDC_Direction){
+                    FDC_Track := FDC_Track - 1
+                    goto(Seek_StepC)
+                }otherwise{
+                    FDC_Track := FDC_Track + 1
+                    goto(Seek_StepC)
+                }
+            }
+        } 
+        val Seek_StepC: State = new State
+        {
+            whenIsActive
+            {
+                when(FDC_Direction){
+                    when(FDC_Command(7 downto 4) === 0){
+                        goto(Seek_StepA)
+                    }otherwise{
+                        goto(Seek_StepD)
+                    }
+                }otherwise{
+                    FDC_Track := 0
+                    goto(Seek_StepD)
+                }
+            }
+        } 
+        val Seek_StepD: State = new State
+        {
+            whenIsActive
+            {
+                FDC_INTRQ := True
+                FDC_S0_Busy := False
+                goto(Wait4CMD)
+            }
+        } 
 
         val Write_Track_Start: State = new State
         {

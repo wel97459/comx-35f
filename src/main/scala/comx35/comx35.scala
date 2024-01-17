@@ -77,7 +77,7 @@ class comx35_test() extends Component {
         val Card_DataOut = out Bits(8 bits)
         val FDCRom = new Bundle {
             val DataIn = in Bits(8 bit)
-            val Addr = out Bits(12 bit)
+            val Addr = out Bits(13 bit)
         }
     }
 
