@@ -123,6 +123,7 @@ class FDC_Card extends Component
             when(F5_addr === 0){
                 io.DataOut := FDC_Status
                 FDC_Read_Status := True
+                FDC_INTRQ := False
             }elsewhen(F5_addr === 1){
                 io.DataOut := FDC_Track.asBits
                 FDC_Read_Track := True
@@ -167,10 +168,10 @@ class FDC_Card extends Component
                     when(FDC_Command(7) === False){
                         FDC_S0_Busy := True
                         FDC_S1_DRQ := False
+                        FDC_S2_LostData := False
                         FDC_S3_CRC_Error := False
                         FDC_S4_RNF := False
 
-                        FDC_INTRQ := False
                         goto(Seek_Start)
                     }elsewhen(FDC_Command === 0xF4){
                         FDC_S0_Busy := True
@@ -180,7 +181,6 @@ class FDC_Card extends Component
                         FDC_S5_WriteFault := False
                         FDC_S6_WriteProtect := False
             
-                        FDC_INTRQ := False
                         goto(Write_Track_Start)
                     }
                 }
@@ -191,7 +191,7 @@ class FDC_Card extends Component
         {
             whenIsActive
             {
-                when(IndexPulseCount > 5 || FDC_Command(3))
+                when(IndexPulseCount > 6 || FDC_Command(3))
                 {
                     when(FDC_Command(7 downto 4) === 0){
                         FDC_Track := 0xFF
@@ -266,6 +266,7 @@ class FDC_Card extends Component
                     }
                 }otherwise{
                     FDC_Track := 0
+                    FDC_S2_LostData := True
                     goto(Seek_StepD)
                 }
             }
