@@ -1,30 +1,25 @@
 COMX-35F
 ============
-This is a cycle-accurate COMX-35 computer that has been implemented on an FPGA, with all the hardware written in SpinalHDL.
+This is a cycle-accurate COMX-35 computer that has been implemented on an FPGA, with all the hardware is written in SpinalHDL.
 
 Video
 ---------------
 The system currently supports NTSC video.  Everything needed for PAL is available in the hardware.
 
-For NTCS color you will need a clock source of 14.318MHz, currently I'm using a si5351 breakout board.
-Both Burst and Luma use a 3 bit R2R ladder DAC.
-And this get mixed the same as on the [COMIX-35][2] with a NPN transistor driving the video output.
+For NTCS color you will need a clock source of 14.318MHz, currently, I'm using a si5351 breakout board.
+Both Burst and Luma use a 3-bit R2R ladder DAC. That gets mixed the same as on the [COMIX-35][2] with a NPN transistor driving the video output.
 
 Inputs
 ---------------
-For a keyboard I'm using a BlackBerry Q10 PMOD, and not the best option.
+For the keyboard, I'm using a stranded PS2 interface.
 
-There is a serial interface available for reading and writing programs to memory, which also allows for halting the CPU, and resetting the system. This interface also can press keys for type in programs. The baud rate for this interface is 57600.
+there is a serial interface available for reading and writing programs to memory, which also allows for halting the CPU and resetting the system. This interface also can press keys for type in programs. The baud rate for this interface is 57600.
 
-The use of an Op-amp as a comparator for the input pin of the tape interface works well for the loading of programs.
-I haven't tried saving out to a tape yet.
-
-When using [EMMA][1] to generate tape audio, it is important to set the CPU frequency to 5.53125MHz. This also needs to be done for the COMIX-35. 
-The pre-tone should be 2Khz.
+Using an Op-amp as a comparator for the input pin of the tape interface works well for the loading of programs.
 
 Simulation
 ---------------
-Also there is a simulator available that features an NTSC monitor capable of displaying the output of the video hardware. This is extremely useful for obtaining a comprehensive hardware trace of the system as it runs. However, the simulator only runs at 2 FPS.
+You can also simulate the core with an emulated NTSC monitor capable of displaying the output of the video hardware. This is extremely useful for obtaining a comprehensive hardware trace of the system as it runs. However, the simulator only runs at 2 FPS.
 
 TODOs & Problems
 ---------------
