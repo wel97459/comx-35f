@@ -2,12 +2,25 @@
 //#include <SDL2/SDL_ttf.h>
 #include <memory>
 #include <vector>
+#include <cstring>
 #include "sim.h"
 #include "crt_core.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 using namespace std;
+
+// ---- sim backend selection (--fast) ----
+// Fast (emulated VIS) backend lives in sim_fast.cpp; hardware backend in sim.cpp.
+extern void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c);
+extern void fast_keyevent(int key);
+extern void fast_run();
+extern void fast_end();
+
+static void (*sim_init_fn)(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c);
+static void (*sim_keyevent_fn)(int key);
+static void (*sim_run_fn)();
+static void (*sim_end_fn)();
 //SDL renderer and single font (leaving global for simplicity)
 SDL_Renderer *renderer;
 SDL_Window *window;
@@ -67,7 +80,7 @@ int handleInput()
 		case SDL_KEYDOWN:
 			if (event.key.keysym.sym == SDLK_ESCAPE)
 				return -1;
-            sim_keyevent(event.key.keysym.sym);
+            sim_keyevent_fn(event.key.keysym.sym);
 
 		// case SDL_MOUSEBUTTONDOWN:
 		// 	handleMouse(event.button.x, event.button.y);
@@ -139,23 +152,42 @@ void drawCRT()
 int main(int argc, char *argv[])
 {
     roll=0;
+
+    // Select sim backend: --fast → emulated VIS, otherwise full hardware.
+    bool fast = false;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--fast") == 0) fast = true;
+    }
+    if (fast) {
+        sim_init_fn     = fast_init;
+        sim_keyevent_fn = fast_keyevent;
+        sim_run_fn      = fast_run;
+        sim_end_fn      = fast_end;
+        printf("Using emulated-VIS (fast) backend.\n");
+    } else {
+        sim_init_fn     = sim_init;
+        sim_keyevent_fn = sim_keyevent;
+        sim_run_fn      = sim_run;
+        sim_end_fn      = sim_end;
+    }
+
     if(initVideo()==0) return -1;
 
     video = (unsigned char *) malloc((WINDOW_WIDTH * WINDOW_HEIGHT) * sizeof(int));
     crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, CRT_PIX_FORMAT_RGBA, video);
 
-    sim_init(video, texDisplay, drawCRT, &crt);
+    sim_init_fn(video, texDisplay, drawCRT, &crt);
     crt.blend = 1;
     crt.scanlines = 0;
 
     drawCRT();
 
     do{
-        sim_run();
+        sim_run_fn();
     } while (handleInput() >= 0); //run until exit requested
 
 done:
-    sim_end();
+    sim_end_fn();
     // Create an empty RGB surface that will be used to create the screenshot bmp file
     SDL_Surface* pScreenShot = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 

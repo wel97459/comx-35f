@@ -68,7 +68,7 @@ class FDC_Card extends Component
     val FDC_Command_Loaded = False
     val FDC_CMD_Loaded = RegNext(FDC_Command_Loaded)
 
-    val FDC_Data_Loaded = RegNext(Bool()) init(False)
+    val FDC_Data_Loaded = Reg(Bool()) init(False)
 
     val FDC_Command_Type = FDC_Command(7 downto 4)
 
