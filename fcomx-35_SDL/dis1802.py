@@ -1,0 +1,107 @@
+import sys
+
+# Correct RCA 1802 opcode table -> (mnemonic, length)
+def op(b):
+    n = b & 0x0F
+    r = "R%X" % n
+    # 0x0N LDN
+    if b < 0x10: return ("LDN %s" % r, 1)
+    if b < 0x20: return ("INC %s" % r, 1)
+    if b < 0x30: return ("DEC %s" % r, 1)
+    if b == 0x30: return ("BR", 2)
+    if b == 0x31: return ("BQ", 2)
+    if b == 0x32: return ("BZ", 2)
+    if b == 0x33: return ("BDF", 2)
+    if b == 0x34: return ("B1", 2)   # EF1
+    if b == 0x35: return ("B2", 2)
+    if b == 0x36: return ("B3", 2)
+    if b == 0x37: return ("B4", 2)   # EF4
+    if b == 0x38: return ("NBR", 2)
+    if b == 0x39: return ("BNQ", 2)
+    if b == 0x3A: return ("BNZ", 2)
+    if b == 0x3B: return ("BNF", 2)
+    if b == 0x3C: return ("BN1", 2)
+    if b == 0x3D: return ("BN2", 2)
+    if b == 0x3E: return ("BN3", 2)
+    if b == 0x3F: return ("BN4", 2)
+    if b < 0x50: return ("LDA %s" % r, 1)
+    if b < 0x60: return ("STR %s" % r, 1)
+    if b == 0x60: return ("IRX", 1)
+    if 0x61 <= b <= 0x67: return ("OUT %d" % n, 1)
+    if b == 0x68: return ("INP 0", 1)
+    if 0x69 <= b <= 0x6F: return ("INP %d" % n, 1)
+    if b == 0x70: return ("RET", 1)
+    if b == 0x71: return ("DIS", 1)
+    if b == 0x72: return ("LDXA", 1)
+    if b == 0x73: return ("STXD", 1)
+    if b == 0x74: return ("ADC", 1)
+    if b == 0x75: return ("SDB", 1)
+    if b == 0x76: return ("SHRC", 1)
+    if b == 0x77: return ("SMB", 1)
+    if b == 0x78: return ("SAV", 1)
+    if b == 0x79: return ("MARK", 1)
+    if b == 0x7A: return ("REQ", 1)
+    if b == 0x7B: return ("SEQ", 1)
+    if b == 0x7C: return ("ADCI", 2)
+    if b == 0x7D: return ("SDBI", 2)
+    if b == 0x7E: return ("SHLC", 1)
+    if b == 0x7F: return ("SMBI", 2)
+    if b < 0x90: return ("GLO %s" % r, 1)
+    if b < 0xA0: return ("GHI %s" % r, 1)
+    if b < 0xB0: return ("PLO %s" % r, 1)
+    if b < 0xC0: return ("PHI %s" % r, 1)
+    if b == 0xC0: return ("LBR", 3)
+    if b == 0xC1: return ("LBQ", 3)
+    if b == 0xC2: return ("LBZ", 3)
+    if b == 0xC3: return ("LBDF", 3)
+    if b == 0xC4: return ("NOP", 1)
+    if b == 0xC5: return ("LSNQ", 1)
+    if b == 0xC6: return ("LSNZ", 1)
+    if b == 0xC7: return ("LSNF", 1)
+    if b == 0xC8: return ("LSKP", 1)
+    if b == 0xC9: return ("LBNQ", 3)
+    if b == 0xCA: return ("LBNZ", 3)
+    if b == 0xCB: return ("LBNF", 3)
+    if b == 0xCC: return ("LSIE", 1)
+    if b == 0xCD: return ("LSQ", 1)
+    if b == 0xCE: return ("LSZ", 1)
+    if b == 0xCF: return ("LSDF", 1)
+    if b < 0xE0: return ("SEP %s" % r, 1)
+    if b < 0xF0: return ("SEX %s" % r, 1)
+    if b == 0xF0: return ("LDX", 1)
+    if b == 0xF1: return ("OR", 1)
+    if b == 0xF2: return ("AND", 1)
+    if b == 0xF3: return ("XOR", 1)
+    if b == 0xF4: return ("ADD", 1)
+    if b == 0xF5: return ("SD", 1)
+    if b == 0xF6: return ("SHR", 1)
+    if b == 0xF7: return ("SM", 1)
+    if b == 0xF8: return ("LDI", 2)
+    if b == 0xF9: return ("ORI", 2)
+    if b == 0xFA: return ("ANI", 2)
+    if b == 0xFB: return ("XRI", 2)
+    if b == 0xFC: return ("ADI", 2)
+    if b == 0xFD: return ("SDI", 2)
+    if b == 0xFE: return ("SHL", 1)
+    if b == 0xFF: return ("SMI", 2)
+
+data = open(sys.argv[1], 'rb').read()
+start = int(sys.argv[2], 16)
+end = int(sys.argv[3], 16)
+# linear disassemble
+a = start
+while a < end:
+    b = data[a]
+    m, ln = op(b)
+    extra = data[a+1:a+ln]
+    hexs = ' '.join('%02X' % x for x in data[a:a+ln])
+    if ln == 2 and b in (0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3A,0x3B,0x3C,0x3D,0x3E,0x3F):
+        tgt = (a & 0xFF00) | extra[-1]
+        print("%04X: %-8s %-8s ; -> %04X" % (a, hexs, m, tgt))
+    elif ln == 3:
+        print("%04X: %-8s %-8s #%04X" % (a, hexs, m, (extra[0]<<8)|extra[1]))
+    elif ln == 2:
+        print("%04X: %-8s %-8s #%02X" % (a, hexs, m, extra[-1]))
+    else:
+        print("%04X: %-8s %s" % (a, hexs, m))
+    a += ln
