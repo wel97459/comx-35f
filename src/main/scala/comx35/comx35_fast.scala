@@ -44,8 +44,17 @@ class comx35_fast() extends Component {
         val Card_DataOut = out Bits(8 bits)
         val FDCRom = new Bundle {
             val DataIn = in Bits(8 bit)
-            val Addr = out Bits(12 bit)
+            val Addr = out Bits(13 bit)
         }
+        // FDC disk byte interface (served by software)
+        val DiskReadReq = out Bool()
+        val DiskDataIn = in Bits(8 bits)
+        val DiskWriteReq = out Bool()
+        val DiskDataOut = out Bits(8 bits)
+        val DiskTrack = out Bits(8 bits)
+        val DiskSector = out Bits(8 bits)
+        val DiskSide = out Bool()
+        val DiskByte = out UInt(7 bits)
 
         // Software-driven timing (replaces the VIS)
         val PreDisplay_ = in Bool()
@@ -83,6 +92,14 @@ class comx35_fast() extends Component {
     io.ExtRom := fdc.io.ExtRom
     io.FDCRom.Addr := fdc.io.FDCRom.Addr
     fdc.io.FDCRom.DataIn := io.FDCRom.DataIn
+    io.DiskReadReq := fdc.io.DiskReadReq
+    fdc.io.DiskDataIn := io.DiskDataIn
+    io.DiskWriteReq := fdc.io.DiskWriteReq
+    io.DiskDataOut := fdc.io.DiskDataOut
+    io.DiskTrack := fdc.io.DiskTrack
+    io.DiskSector := fdc.io.DiskSector
+    io.DiskSide := fdc.io.DiskSide
+    io.DiskByte := fdc.io.DiskByte
 
     // CPU control
     CPU.io.Wait_n := io.Wait

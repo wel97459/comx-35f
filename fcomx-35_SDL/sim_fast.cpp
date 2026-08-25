@@ -18,6 +18,7 @@
 #include "comx_loader.h"
 #include <verilated_fst_c.h>
 #include "Vcomx35_fast.h"
+#include "CMakeFiles/dt_lib_fast.dir/Vcomx35_fast.dir/Vcomx35_fast___024root.h"
 
 // ---- globals (static to avoid colliding with sim.cpp) ----
 static void (*sim_draw)();
@@ -33,9 +34,32 @@ static Uint8 rom[0x4000];
 static Uint8 ram[0x8000];
 static Uint8 fdc[0x2000];
 
+// ---- FDC disk image (raw sector dump: track-interleaved, 35t x 2s x 16sec x 128B) ----
+#define DISK_TRACKS     35
+#define DISK_SIDES      2
+#define DISK_SECTORS    16
+#define DISK_SECTOR_LEN 128
+#define DISK_SIZE       (DISK_TRACKS * DISK_SIDES * DISK_SECTORS * DISK_SECTOR_LEN)
+
+static Uint8  diskImage[DISK_SIZE];
+static bool   diskLoaded = false;
+static Uint32 diskReadCount = 0;
+static Uint32 diskWriteCount = 0;
+
+// Byte offset in the raw image for (track, side, sector, byte-index).
+static Uint32 diskOffset(Uint8 track, Uint8 side, Uint8 sector, Uint8 byteIdx) {
+    Uint32 o = ((Uint32)track * DISK_SIDES + side);   // head-interleaved per track
+    o = o * DISK_SECTORS + sector;
+    o = o * DISK_SECTOR_LEN + byteIdx;
+    return o;
+}
+
 // ---- keyboard ----
-static char basicStr[] = "\rdoos cat\r";
-static char *keyInput = &basicStr[0];
+static Uint8 keyValid = 0;
+static char keyInput = 0x00;
+static int autoTypeIdx = 0;      // auto-"DOS CAT" typewriter index
+static int autoStage = 0;        // 0=logo ENTER pending, 1=typing DOS CAT, 2=done
+static Uint16 lastKeyFrame = 0;
 static Uint16 FrameCount = 0;
 static Uint16 FrameCurent = 0;
 static Uint8 Ready_Edge = 0;
@@ -241,7 +265,7 @@ static void renderToCRT() {
     settings.h        = h;
     settings.raw      = 0;
     settings.as_color = 1;
-
+    settings.hue      = 180;
     crt_modulate(sim_crt, &settings);
 }
 
@@ -259,6 +283,8 @@ void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c) {
     printf("Started (fast / emulated VIS mode).\n");
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
     loadFile("../data/fdc.bin", fdc, 0x2000);
+    diskLoaded = (loadFile("../data/dos.img", diskImage, DISK_SIZE) == 0);
+    printf("disk image: %s\n", diskLoaded ? "loaded" : "NOT FOUND");
 
     comx = new Vcomx35_fast();
     updateDisplayParams();
@@ -268,6 +294,8 @@ void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c) {
 
 void fast_keyevent(int key) {
     // (no per-key color adjustment in fast mode for now)
+    keyInput = key;
+    keyValid = 1;
 }
 
 #define CPU_CLOCKS_PER_FRAME 47250
@@ -299,14 +327,106 @@ void fast_run() {
         memData = ram[a16 - 0x4000];
     } else if (comx->io_MRD == 0 && a16 >= 0xC000 && a16 <= 0xDFFF) {
         memData = comx->io_Card_DataOut;
+    } else if (comx->io_MRD == 1 && comx->io_N == 2 && !comx->io_KBD_SEL) {
+        // INP 2: MRD stays HIGH during an 1802 input instruction; the card
+        // drives the bus via its register mux.
+        memData = comx->io_Card_DataOut;
     } else if (comx->io_MRD == 0 && comx->io_N == 2) {
         memData = comx->io_Card_DataOut;
     }
     comx->io_DataIn = memData;
 
+    // --- FDC port activity logger (env FDC_LOG=1) ---
+    // Spinal1802 bus polarity (verified in Spinal1802.scala):
+    //   OUT n (0x60-67) -> ExeMode=Load       -> MRD pulses LOW  (CPU writes port)
+    //   INP n (0x68-6F) -> ExeMode=WriteNoInc -> MWR pulses LOW  (CPU reads port)
+    // So: MRD low + TPB = OUT (write); MWR low + TPB = INP (read).
+    if (getenv("FDC_LOG")) {
+        static Uint8 selLatch = 0;
+        static Uint64 logCnt = 0;
+        const Uint64 CAP = (getenv("FDC_LOG_ALL")) ? 100000 : 400;
+        // current program counter = R[P] (so each event is tied to DOS source line)
+        auto* rr = comx->rootp;
+        const Uint16* Rrr[16] = {
+            &rr->comx35_fast__DOT__CPU__DOT__R_0,  &rr->comx35_fast__DOT__CPU__DOT__R_1,
+            &rr->comx35_fast__DOT__CPU__DOT__R_2,  &rr->comx35_fast__DOT__CPU__DOT__R_3,
+            &rr->comx35_fast__DOT__CPU__DOT__R_4,  &rr->comx35_fast__DOT__CPU__DOT__R_5,
+            &rr->comx35_fast__DOT__CPU__DOT__R_6,  &rr->comx35_fast__DOT__CPU__DOT__R_7,
+            &rr->comx35_fast__DOT__CPU__DOT__R_8,  &rr->comx35_fast__DOT__CPU__DOT__R_9,
+            &rr->comx35_fast__DOT__CPU__DOT__R_10, &rr->comx35_fast__DOT__CPU__DOT__R_11,
+            &rr->comx35_fast__DOT__CPU__DOT__R_12, &rr->comx35_fast__DOT__CPU__DOT__R_13,
+            &rr->comx35_fast__DOT__CPU__DOT__R_14, &rr->comx35_fast__DOT__CPU__DOT__R_15 };
+        Uint16 pc = *Rrr[rr->comx35_fast__DOT__CPU__DOT__P];
+        if (comx->io_MRD == 0 && comx->io_N == 2 && comx->io_TPB) {   // OUT 2
+            if (comx->io_Q) {
+                if (logCnt < CAP) {
+                    fprintf(stderr, "[fdc] f=%u pc=%04x OUT2 SELECT=%02X (drive=%d side=%d gate=%d)\n",
+                            FrameCount, pc, comx->io_DataOut,
+                            (comx->io_DataOut >> 2) & 3,   // bits 2-3: drive
+                            (comx->io_DataOut >> 5) & 1,   // bit 5: side
+                            (comx->io_DataOut >> 4) & 1);  // bit 4: gate
+                    ++logCnt;
+                } else if (logCnt == CAP) { fprintf(stderr, "[fdc] ...suppressing\n"); ++logCnt; }
+                selLatch = comx->io_DataOut;
+            } else if (logCnt < CAP) {
+                if ((selLatch & 3) == 0) {
+                    const char* cmd = "?";
+                    switch (comx->io_DataOut & 0xF0) {
+                        case 0x00: cmd = "RESTORE"; break;
+                        case 0x10: cmd = "SEEK"; break;
+                        case 0x20: case 0x30: cmd = "STEP"; break;
+                        case 0x80: cmd = "READ_SEC"; break;
+                        case 0x90: cmd = "READ_MULTI"; break;
+                        case 0xA0: cmd = "WRITE_SEC"; break;
+                        case 0xB0: cmd = "WRITE_MULTI"; break;
+                        case 0xC0: cmd = "READ_ADDR"; break;
+                        case 0xD0: cmd = "FORCE_INT"; break;
+                        case 0xE0: cmd = "READ_TRACK"; break;
+                        case 0xF0: cmd = "WRITE_TRACK"; break;
+                    }
+                    fprintf(stderr, "[fdc] f=%u pc=%04x OUT2 CMD=%s (%02X)\n", FrameCount, pc, cmd, comx->io_DataOut);
+                } else {
+                    fprintf(stderr, "[fdc] f=%u pc=%04x OUT2 reg=%d data=%02X\n",
+                            FrameCount, pc, selLatch & 3, comx->io_DataOut);
+                }
+                ++logCnt;
+            } else if (logCnt == CAP) { fprintf(stderr, "[fdc] ...suppressing\n"); ++logCnt; }
+        }
+        if (comx->io_MWR == 0 && comx->io_N == 2 && comx->io_TPB && logCnt < CAP) {   // INP 2
+            static const char* const regn[4] = {"STATUS","TRACK","SECTOR","DATA"};
+            const char* what = comx->io_Q ? "INTRQ" : regn[selLatch & 3];
+            Uint16 r2 = *Rrr[2], r4 = *Rrr[4], r8 = *Rrr[8], r10 = *Rrr[10], r14 = *Rrr[14];
+            Uint8 memr2 = (r2 >= 0x4000 && r2 <= 0xBFFF) ? ram[r2 - 0x4000]
+                        : (r2 <= 0x3FFF) ? rom[r2] : 0xEE;
+            auto peekmem = [&](Uint16 a){ return (a>=0x4000&&a<=0xBFFF)? ram[a-0x4000] : (a<=0x3FFF)? rom[a] : 0xEE; };
+            fprintf(stderr, "[fdc] f=%u pc=%04x INP2 %s -> %02X (st=%02X | R2=%04x [-2..+8]=%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X | RA=%04x)\n",
+                    FrameCount, pc, what, comx->io_Card_DataOut,
+                    comx->rootp->comx35_fast__DOT__fdc__DOT__FDC_Status,
+                    r2,
+                    peekmem(r2-2), peekmem(r2-1), peekmem(r2), peekmem(r2+1), peekmem(r2+2),
+                    peekmem(r2+3), peekmem(r2+4), peekmem(r2+5), peekmem(r2+6), peekmem(r2+7),
+                    peekmem(r2+8), r10);
+            ++logCnt;
+        } else if (logCnt == CAP) { fprintf(stderr, "[fdc] ...suppressing\n"); ++logCnt; }
+    }
+
     // --- memory write ---
     if (comx->io_MWR == 0 && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
         ram[comx->io_Addr16 - 0x4000] = comx->io_DataOut;
+        if (getenv("FDC_LOG") && FrameCount >= 212 && FrameCount <= 216) {
+            auto* mrr = comx->rootp;
+            const Uint16* Mrr[16] = { &mrr->comx35_fast__DOT__CPU__DOT__R_0, &mrr->comx35_fast__DOT__CPU__DOT__R_1,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_2, &mrr->comx35_fast__DOT__CPU__DOT__R_3,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_4, &mrr->comx35_fast__DOT__CPU__DOT__R_5,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_6, &mrr->comx35_fast__DOT__CPU__DOT__R_7,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_8, &mrr->comx35_fast__DOT__CPU__DOT__R_9,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_10, &mrr->comx35_fast__DOT__CPU__DOT__R_11,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_12, &mrr->comx35_fast__DOT__CPU__DOT__R_13,
+                &mrr->comx35_fast__DOT__CPU__DOT__R_14, &mrr->comx35_fast__DOT__CPU__DOT__R_15 };
+            Uint16 mpc = *Mrr[mrr->comx35_fast__DOT__CPU__DOT__P];
+            fprintf(stderr, "[memwr] f=%u pc=%04x MWR %04X <- %02X (R2=%04x)\n",
+                    FrameCount, mpc, comx->io_Addr16, comx->io_DataOut, *Mrr[2]);
+        }
     }
 
     // --- VIS register decode ---
@@ -327,7 +447,49 @@ void fast_run() {
         }
     }
 
+    // --- FDC disk byte interface (serve/capture one byte) ---
+    if (comx->io_DiskReadReq) {
+        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
+                                comx->io_DiskSector, comx->io_DiskByte);
+        comx->io_DiskDataIn = (off < DISK_SIZE) ? diskImage[off] : 0;
+        diskReadCount++;
+    } else {
+        comx->io_DiskDataIn = 0;
+    }
+    if (comx->io_DiskWriteReq) {
+        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
+                                comx->io_DiskSector, comx->io_DiskByte);
+        if (off < DISK_SIZE) diskImage[off] = comx->io_DiskDataOut;
+        diskWriteCount++;
+    }
+
     // --- keyboard ---
+    // Auto-type key sequence so DOS boots headlessly:
+    //   1) ENTER to get past the COMX-35 logo landing screen
+    //   2) wait for BASIC READY
+    //   3) "DOS CAT" + Enter (lists the disk directory and loads the DOS system)
+    if (!getenv("NO_AUTO_DOS")) {
+        static const char stage2[] = "dos cat\r";
+        if (autoStage == 0 && FrameCount >= 60) {          // logo screen -> ENTER
+            if (!keyValid && comx->io_KBD_Ready && FrameCount > FrameCurent &&
+                FrameCount > lastKeyFrame + 6) {
+                keyInput = '\r'; keyValid = 1;
+                lastKeyFrame = FrameCount; autoStage = 1;
+                printf("[auto-dos] ENTER for logo\n");
+            }
+        } else if (autoStage == 1 && FrameCount >= 160) {   // BASIC READY
+            if (autoTypeIdx < (int)sizeof(stage2) - 1) {
+                if (!keyValid && comx->io_KBD_Ready && FrameCount > FrameCurent &&
+                    FrameCount > lastKeyFrame + 6) {
+                    keyInput = stage2[autoTypeIdx++]; keyValid = 1;
+                    lastKeyFrame = FrameCount;
+                    printf("[auto-dos] typing '%c'\n", keyInput);
+                }
+            } else {
+                autoStage = 2;
+            }
+        }
+    }
     if (!comx->io_KBD_Ready) {
         comx->io_KBD_Latch = 0;
         comx->io_KBD_KeyCode = 0x00;
@@ -335,12 +497,13 @@ void fast_run() {
     }
     if (FrameCount == 10 && comx->io_KBD_Ready) {
         comx->io_KBD_Latch = 1;
-        comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+        comx->io_KBD_KeyCode = ComxKeyboard(keyInput);
     }
     if (((FrameCount >= 84 && FrameCount <= 105) || FrameCount >= 142) &&
-        FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00) {
+        FrameCount > FrameCurent && comx->io_KBD_Ready && keyValid) {
         comx->io_KBD_Latch = 1;
-        comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+        comx->io_KBD_KeyCode = ComxKeyboard(keyInput);
+        keyValid = 0;
     }
     if (Ready_Edge && !comx->io_KBD_Ready) keyInput++;
     Ready_Edge = comx->io_KBD_Ready;
@@ -366,6 +529,26 @@ void fast_run() {
         frameClock = 0;
         FrameCount++;
 
+        if (getenv("FDC_TRACE")) {
+            auto* r = comx->rootp;
+            static const Uint16* const Rtab[16] = {
+                &r->comx35_fast__DOT__CPU__DOT__R_0,  &r->comx35_fast__DOT__CPU__DOT__R_1,
+                &r->comx35_fast__DOT__CPU__DOT__R_2,  &r->comx35_fast__DOT__CPU__DOT__R_3,
+                &r->comx35_fast__DOT__CPU__DOT__R_4,  &r->comx35_fast__DOT__CPU__DOT__R_5,
+                &r->comx35_fast__DOT__CPU__DOT__R_6,  &r->comx35_fast__DOT__CPU__DOT__R_7,
+                &r->comx35_fast__DOT__CPU__DOT__R_8,  &r->comx35_fast__DOT__CPU__DOT__R_9,
+                &r->comx35_fast__DOT__CPU__DOT__R_10, &r->comx35_fast__DOT__CPU__DOT__R_11,
+                &r->comx35_fast__DOT__CPU__DOT__R_12, &r->comx35_fast__DOT__CPU__DOT__R_13,
+                &r->comx35_fast__DOT__CPU__DOT__R_14, &r->comx35_fast__DOT__CPU__DOT__R_15 };
+            static Uint16 lastPC = 0xFFFF;
+            Uint16 pc = *Rtab[r->comx35_fast__DOT__CPU__DOT__P];
+            if (pc != lastPC) {
+                fprintf(stderr, "[pc] f=%u PC=%04x D=%02x Q=%d\n",
+                        FrameCount, pc, r->comx35_fast__DOT__CPU__DOT__D, comx->io_Q);
+                lastPC = pc;
+            }
+        }
+
         // Encode RGB → NTSC analog; the draw callback (drawCRT) demodulates + presents.
         renderToCRT();
         sim_draw();
@@ -374,6 +557,7 @@ void fast_run() {
 
 void fast_end() {
     printf("Ended (fast).\n");
+    printf("FDC disk: %u bytes read, %u bytes written\n", diskReadCount, diskWriteCount);
     comx->final();
     delete[] fb;
 }

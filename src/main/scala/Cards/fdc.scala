@@ -3,7 +3,6 @@ package Cards
 import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
-import spinal.core.sim._
 
 import java.io._
 import scala.util.control.Breaks
@@ -23,176 +22,297 @@ class FDC_Card extends Component
         val ExtRom = out Bool()
         val FDCRom = new Bundle {
             val DataIn = in Bits(8 bit)
-            val Addr = out Bits(12 bit)
+            val Addr = out Bits(13 bit)
         }
+        // Disk byte interface — the host (simulation) supplies one byte on a read
+        // request, and accepts one byte on a write request.
+        val DiskReadReq  = out Bool()     // FDC needs a byte (read sector/track)
+        val DiskDataIn   = in Bits(8 bit) // byte supplied by the host
+        val DiskWriteReq = out Bool()     // FDC has a byte to store
+        val DiskDataOut  = out Bits(8 bit)// byte to store
+        // Disk addressing (valid while DiskReadReq/DiskWriteReq is asserted) so the
+        // host can map the byte to its offset in the raw sector image.
+        val DiskTrack  = out Bits(8 bits) // current track
+        val DiskSector = out Bits(8 bits) // current sector
+        val DiskSide   = out Bool()       // current head/side (select-register bit 5)
+        val DiskByte   = out UInt(7 bits) // byte index within the sector
     }
 
+    // ---- register select latch (Q=1 write) ----
     val F3_Latch = Reg(Bits(8 bits)) init(0)
-    val F5_addr = F3_Latch(1 downto 0)
+    val F5_addr  = F3_Latch(1 downto 0)
 
-    val FDC_S0_Busy = Reg(Bool()) init(False)
-    val FDC_S1_DRQ = Reg(Bool()) init(False)
-    val FDC_S2_LostData = Reg(Bool()) init(False)
-    val FDC_S3_CRC_Error = Reg(Bool()) init(False)
-    val FDC_S4_RNF = Reg(Bool()) init(False)
-    val FDC_S5_WriteFault = Reg(Bool()) init(False)
-    val FDC_S6_WriteProtect = Reg(Bool()) init(False)
-    val FDC_S7_NotReady = Reg(Bool()) init(False)
-
-    val FDC_INTRQ = Reg(Bool()) init(False)
-
-    val FDC_Status = FDC_S7_NotReady ## 
-                     FDC_S6_WriteProtect ## 
-                     FDC_S5_WriteFault ## 
-                     FDC_S4_RNF ## 
-                     FDC_S3_CRC_Error ##
-                     FDC_S2_LostData ##
-                     FDC_S1_DRQ ##
-                     FDC_S0_Busy
-
+    // ---- WD1770 registers ----
     val FDC_Command = Reg(UInt(8 bits)) init(0)
-    val FDC_Track = Reg(Bits(8 bits)) init(0)
-    val FDC_Sector = Reg(Bits(8 bits)) init(0)
-    val FDC_Data = Reg(Bits(8 bits)) init(0)
+    val FDC_Track   = Reg(Bits(8 bits)) init(0)
+    val FDC_Sector  = Reg(Bits(8 bits)) init(0)
+    val FDC_Data    = Reg(Bits(8 bits)) init(0)
 
-    val FDC_Read_Status = False
-    val FDC_Read_Track = False
-    val FDC_Read_Sector = False
-    val FDC_Read_Data = False
-    
-    val FDC_Write_Status = False
-    val FDC_Write_Track = False
-    val FDC_Write_Sector = False
-    val FDC_Write_Data = False
-    
-    val FDC_Command_Loaded = False
-    val FDC_CMD_Loaded = RegNext(FDC_Command_Loaded)
+    // Side/head select: latched from select-register bit 5 when bit 4 (0x10) is set.
+    val FDC_Side    = Reg(Bool()) init(False)
 
-    val FDC_Data_Loaded = Reg(Bool()) init(False)
+    // ---- status register (WD1770 bit order) ----
+    // bit 0 Busy, 1 DRQ, 2 LostData/TRACK0(type-I), 3 CRC, 4 RNF, 5 WriteFault, 6 WriteProtect, 7 NotReady
+    // Reset value 0x04: head is at track 0 (matches Emma 02 resetFdc: status_=4).
+    val FDC_Status = Reg(Bits(8 bits)) init(0x04)
+    val FDC_INTRQ  = Reg(Bool()) init(False)
 
-    val FDC_Command_Type = FDC_Command(7 downto 4)
+    // ---- byte counter for sector transfers ----
+    val ByteCount = Reg(UInt(7 bits)) init(0)
 
-    val IndexPulseCounter = CounterFreeRun(100000)
-    val IndexPulseCount = Counter(10)
+    // ---- command timing ----
+    // Real WD1770 takes ~90 clock cycles after a Read/Write Sector command
+    // before the first DRQ (head settle / sector find). DOS polls status and
+    // expects BUSY (bit 0) during this window.
+    val DrqDelay = Reg(UInt(8 bits)) init(0)
+    // Multiple-sector mode (command 0x9x/0xBx): keep reading until the last
+    // sector of the track instead of stopping after one.
+    val MultiSector = Reg(Bool()) init(False)
 
-    when(IndexPulseCounter.willOverflowIfInc)
-    {
-        IndexPulseCount.increment()
-    }
+    // ---- bus decode (matches the existing Q-gated port-2 interface) ----
+    // NOTE: on the 1802, OUT pulses MWR low; INP leaves MRD HIGH (a memory read
+    // of the addressed port). So a register READ is MRD high with N==2.
+    val regWrite  = !io.MRD && io.TPB && io.N === 2   // OUT 2 (write)
+    // INP 2: valid only while MWR is high AND TPB has pulsed (end of the input
+    // cycle). Sampling earlier catches bus-transition edges where the address
+    // bus still holds a ROM-window address, which would let the ExtRom decode
+    // drive DataOut with fdc.bin bytes (observed as spurious 0x80 status).
+    val regRead   =  io.MRD && !io.MWR && io.TPB && io.N === 2
+    val selWrite  = regWrite &&  io.Q                 // Q=1: select register
+    val cmdWrite  = regWrite && !io.Q && F5_addr === 0
+    val trkWrite  = regWrite && !io.Q && F5_addr === 1
+    val secWrite  = regWrite && !io.Q && F5_addr === 2
+    val datWrite  = regWrite && !io.Q && F5_addr === 3
+    val datRead   = regRead  && !io.Q && F5_addr === 3
+    val statRead  = regRead  && !io.Q && F5_addr === 0
 
+    // edge detection (single-cycle pulses for the FSM)
+    // cmdWriteRise fires the cycle the command byte is on the bus; the FSM must
+    // wait one more cycle for FDC_Command to latch, so it uses cmdLatched.
+    val cmdWriteD    = RegNext(cmdWrite) init(False)
+    val cmdWriteRise = cmdWrite && !cmdWriteD
+    val cmdLatched   = RegNext(cmdWriteRise) init(False)
+    val datReadD     = RegNext(datRead) init(False)
+    val datReadRise  = datRead && !datReadD
+    val datWriteD    = RegNext(datWrite) init(False)
+    val datWriteRise = datWrite && !datWriteD
+
+    // ---- register interface ----
     io.DataOut := 0
     io.ExtRom := False
     io.FDCRom.Addr := 0
-    io.EF4_ := !(FDC_S1_DRQ && !F3_Latch(4)) 
+    io.EF4_ := !FDC_Status(1)          // EF4 = !DRQ (active-low EF line)
 
-    when(!io.MRD && io.TPB && io.N === 2){
-        when(io.Q){
-            F3_Latch := io.DataIn
-        }elsewhen(!io.Q){
-            when(F5_addr === 0){
-                FDC_Command := io.DataIn.asUInt
-                FDC_Command_Loaded := True
-            }elsewhen(F5_addr === 1){
-                FDC_Track := io.DataIn
-                FDC_Write_Track := True
-            }elsewhen(F5_addr === 2){
-                FDC_Sector := io.DataIn
-                FDC_Write_Sector := True
-            }elsewhen(F5_addr === 3){
-                FDC_Data := io.DataIn
-                FDC_Data_Loaded := True
-                FDC_Write_Data := True
-            }
-        }
-    }elsewhen(!io.MRD && io.Addr16.asUInt >= 0x0D00 && io.Addr16.asUInt <= 0x0DFF){
-        io.ExtRom := True
-        io.DataOut := io.FDCRom.DataIn
-        io.FDCRom.Addr := (io.Addr16.asUInt - 0xC87).asBits(11 downto 0)
-    }elsewhen(!io.MRD && io.Addr16.asUInt >= 0xC000 && io.Addr16.asUInt <= 0xDFFF){
-        io.ExtRom := True
-        io.DataOut := io.FDCRom.DataIn
-        io.FDCRom.Addr := (io.Addr16.asUInt - 0xC000).asBits(11 downto 0)
-    }
+    when(selWrite) { F3_Latch := io.DataIn }
+    when(selWrite && io.DataIn(4)) { FDC_Side := io.DataIn(5) }  // drive/side update
+    when(cmdWrite) { FDC_Command := io.DataIn.asUInt }
+    when(trkWrite) { FDC_Track   := io.DataIn }
+    when(secWrite) { FDC_Sector  := io.DataIn }
+    when(datWrite) { FDC_Data    := io.DataIn }
 
-    when(io.MRD){
-        when(io.Q && io.N === 2){
+    when(regRead) {
+        when(io.Q) {
             io.DataOut := B"7'h00" ## FDC_INTRQ
-        }elsewhen(!io.Q && io.N === 2){
-            when(F5_addr === 0){
-                io.DataOut := FDC_Status
-                FDC_Read_Status := True
-            }elsewhen(F5_addr === 1){
-                io.DataOut := FDC_Track
-                FDC_Read_Track := True
-            }elsewhen(F5_addr === 2){
-                io.DataOut := FDC_Sector
-                FDC_Read_Sector := True
-            }elsewhen(F5_addr === 3){
-                io.DataOut := FDC_Data
-                FDC_Read_Data := True
+        } otherwise {
+            switch(F5_addr) {
+                is(0) { io.DataOut := FDC_Status }
+                is(1) { io.DataOut := FDC_Track }
+                is(2) { io.DataOut := FDC_Sector }
+                is(3) { io.DataOut := FDC_Data }
             }
         }
     }
+
+    // ExtRom / FDCRom decode — mirrors Emma 02's COMX FDC config:
+    //   <copy start="0xdd0" end="0xddf" slot="0">0xc000</copy>
+    //   slot 0 ROM at 0xC000-0xDFFF (fdc.bin)
+    // Emma 02 maps the copy as readMemDebug(address + 0xc000); the slot window
+    // is based at 0xC000, so the fdc.bin offset equals the host address itself
+    // (0x0DD0 -> fdc.bin[0xDD0], whose content is CALL 0xC002).
+    // NOTE: the <copy start="0x1000"> directive in the XML belongs to the
+    // expansion/EPROM board config (it targets the 0xE000 expansion.bin ROM),
+    // NOT the FDC card - do not decode it here.
+    // NOTE: this decode must NOT fire during a port-2 INP (regRead): the CPU
+    // address bus holds a port address then, which can alias into a ROM window
+    // and clobber io_DataOut. regRead is handled above and takes priority.
+    when(regRead) {
+        // keep whatever io.DataOut the register mux drove
+    } elsewhen (!io.MRD && io.Addr16.asUInt >= 0x0DD0 && io.Addr16.asUInt <= 0x0DDF) {
+        io.ExtRom := True
+        io.DataOut := io.FDCRom.DataIn
+        io.FDCRom.Addr := io.Addr16(12 downto 0)                       // 0x0DD0 +0xC000 = 0xCDD0 → fdc.bin[0xDD0]
+    } elsewhen (!io.MRD && io.Addr16.asUInt >= 0xC000 && io.Addr16.asUInt <= 0xDFFF) {
+        io.ExtRom := True
+        io.DataOut := io.FDCRom.DataIn
+        io.FDCRom.Addr := (io.Addr16.asUInt - 0xC000).asBits(12 downto 0) // full 8K window
+    }
+
+    // INTRQ clears on status read and on a new command
+    when(statRead)  { FDC_INTRQ := False }
+    when(cmdWrite)  { FDC_INTRQ := False }
+
+    // ---- disk interface defaults ----
+    io.DiskReadReq  := False
+    io.DiskWriteReq := False
+    io.DiskDataOut  := FDC_Data
+    io.DiskTrack    := FDC_Track
+    io.DiskSector   := FDC_Sector
+    io.DiskSide     := FDC_Side
+    io.DiskByte     := ByteCount
+
+    // ---- FDC command state machine ----
     val fsm = new StateMachine
-	{
-        val StartingUp: State = new State with EntryPoint 
+    {
+        val Wait4CMD: State = new State with EntryPoint
         {
-            whenIsActive{
-                FDC_S7_NotReady := False
-                FDC_S6_WriteProtect := False
-                FDC_S5_WriteFault := False
-                FDC_S4_RNF := False
-                FDC_S3_CRC_Error := False
-                FDC_S2_LostData := False
-                FDC_S1_DRQ := False
-                FDC_S0_Busy := False
-
-                FDC_Data_Loaded := False
-                FDC_INTRQ := False
-                goto(Wait4CMD)
-            }
-        }
-
-        val Wait4CMD: State = new State
-        {
-            whenIsActive
-            {
-                FDC_S0_Busy := False
-                when(FDC_CMD_Loaded.rise())
-                {
-                    IndexPulseCounter.clear()
-                    IndexPulseCount.clear()
-                    when(FDC_Command === 0xF4){
-                        FDC_Data_Loaded := False
-                        goto(Write_Track_Start)
+            whenIsActive {
+                FDC_Status(0) := False   // Busy
+                FDC_Status(1) := False   // DRQ
+                // TRACK0 (bit 2, type-I status): set when the head is at track 0
+                FDC_Status(2) := (FDC_Track === 0)
+                when(cmdLatched) {
+                    switch(FDC_Command(7 downto 4)) {
+                        is(0x0)         { goto(Restore_Busy) }
+                        is(0x1)         { goto(Seek_Busy) }
+                        is(0x8, 0x9)    {
+                            ByteCount := 0
+                            MultiSector := FDC_Command(4)
+                            DrqDelay := 90
+                            goto(ReadSector_Find)
+                        }
+                        is(0xA, 0xB)    {
+                            ByteCount := 0
+                            MultiSector := FDC_Command(4)
+                            DrqDelay := 90
+                            goto(WriteSector_DRQ)
+                        }
+                        is(0xD)         { goto(ForceInt) }
+                        default         { goto(Wait4CMD) }
                     }
                 }
             }
         }
 
-        val Write_Track_Start: State = new State
-        {
-            whenIsActive
-            {
-                FDC_S0_Busy := True
-                FDC_S1_DRQ := True
-                FDC_S2_LostData := False
-                FDC_S4_RNF := False
-                FDC_S5_WriteFault := False
-                FDC_S6_WriteProtect := False
+        // ---- Restore: seek to track 0.  Our FDC does not model head stepping, so
+        // the drive is always physically at its current track; a restore therefore
+        // completes immediately (matching Emma 02's "if already at track 0 -> endCommand"
+        // fast path).  DOS's driver issues the restore and reads status ~1 ms later,
+        // expecting TRACK0 to already be reported - a 30 ms step delay here makes DOS
+        // retry and abort with error 104.
+        val Restore_Busy: State = new State {
+            whenIsActive {
+                FDC_Track := 0
+                FDC_INTRQ := True
+                FDC_Status := 0x04            // endCommand(4): TRACK0 flag only
+                goto(Wait4CMD)
+            }
+        }
 
+        // ---- Seek: move to track in data register (instant - no stepping modeled) ----
+        val Seek_Busy: State = new State {
+            whenIsActive {
+                FDC_Track := FDC_Data
+                FDC_INTRQ := True
+                FDC_Status := (FDC_Data === 0) ? B"8'x04" | B"8'x00"
+                goto(Wait4CMD)
+            }
+        }
+
+        // ---- Force Interrupt: clear INTRQ, drop busy ----
+        val ForceInt: State = new State {
+            whenIsActive {
                 FDC_INTRQ := False
-                when(IndexPulseCounter.willOverflowIfInc && IndexPulseCount > 1 && !FDC_Data_Loaded){
-                    goto(Write_Track_Failed)
+                FDC_Status(0) := False
+                goto(Wait4CMD)
+            }
+        }
+
+        // ---- Read Sector (0x8/0x9): 128-byte DRQ handshake ----
+
+        // Find phase: BUSY for ~90 cycles before the first byte is available
+        // (models head settle / sector find on a real drive).
+        val ReadSector_Find: State = new State {
+            whenIsActive {
+                FDC_Status := 0x01        // Busy, all else clear
+                when(DrqDelay =/= 0) {
+                    DrqDelay := DrqDelay - 1
+                } otherwise {
+                    goto(ReadSector_Req)
                 }
             }
         }
 
-        val Write_Track_Failed: State = new State
-        {
-            whenIsActive
-            {
-                FDC_S2_LostData := True
+        val ReadSector_Req: State = new State {
+            whenIsActive {
+                FDC_Status(0) := True    // Busy
+                io.DiskReadReq := True   // request a byte from the host
+                FDC_Data := io.DiskDataIn
+                goto(ReadSector_DRQ)
+            }
+        }
+
+        val ReadSector_DRQ: State = new State {
+            whenIsActive {
+                FDC_Status(0) := True    // Busy
+                FDC_Status(1) := True    // DRQ
+                when(datReadRise) {
+                    FDC_Status(1) := False   // CPU consumed the byte
+                    ByteCount := ByteCount + 1
+                    when(ByteCount === 127) {
+                        goto(ReadSector_Done)
+                    } otherwise {
+                        goto(ReadSector_Req)
+                    }
+                }
+            }
+        }
+
+        val ReadSector_Done: State = new State {
+            whenIsActive {
+                FDC_Status(0) := False   // Busy
+                FDC_INTRQ := True
+                // Multiple-sector mode: advance to the next sector (1..15 wrap
+                // to 0 per Emma 02: sector_++ while sector_ < numberOfSectors-1)
+                when(MultiSector && FDC_Sector.asUInt < 15) {
+                    FDC_Sector := (FDC_Sector.asUInt + 1).asBits
+                    ByteCount := 0
+                    DrqDelay := 90
+                    goto(ReadSector_Find)
+                } otherwise {
+                    goto(Wait4CMD)
+                }
+            }
+        }
+
+        // ---- Write Sector (0xA/0xB): 128-byte DRQ handshake ----
+        val WriteSector_DRQ: State = new State {
+            whenIsActive {
+                FDC_Status(0) := True    // Busy
+                FDC_Status(1) := True    // DRQ (ask for first byte)
+                when(datWriteRise) {
+                    FDC_Status(1) := False   // CPU supplied a byte
+                    goto(WriteSector_Send)
+                }
+            }
+        }
+
+        val WriteSector_Send: State = new State {
+            whenIsActive {
+                FDC_Status(0) := True
+                io.DiskWriteReq := True
+                io.DiskDataOut := FDC_Data
+                ByteCount := ByteCount + 1
+                when(ByteCount === 127) {
+                    goto(WriteSector_Done)
+                } otherwise {
+                    goto(WriteSector_DRQ)
+                }
+            }
+        }
+
+        val WriteSector_Done: State = new State {
+            whenIsActive {
+                FDC_Status(0) := False
                 FDC_INTRQ := True
                 goto(Wait4CMD)
             }
