@@ -296,8 +296,56 @@ void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c) {
 }
 
 void fast_keyevent(int key) {
-    // (no per-key color adjustment in fast mode for now)
-    keyInput = key;
+    // Modifier keys themselves must not be typed into the emulated machine
+    // (Shift alone arrived as its keysym and was interpreted as a keypress).
+    if (key == SDLK_LSHIFT || key == SDLK_RSHIFT ||
+        key == SDLK_LCTRL  || key == SDLK_RCTRL ||
+        key == SDLK_LALT   || key == SDLK_RALT ||
+        key == SDLK_LGUI   || key == SDLK_RGUI ||
+        key == SDLK_CAPSLOCK || key == SDLK_NUMLOCKCLEAR) {
+        return;
+    }
+    // Translate the SDL keysym + current modifiers into the ASCII character
+    // the user actually typed. main.cpp passes keysym.sym (the UNshifted
+    // key), so without this Shift never reaches the emulated keyboard
+    // (e.g. Shift+' typed " but arrived as ').
+    int c = key;
+    SDL_Keymod mod = SDL_GetModState();
+    bool shifted = (mod & KMOD_SHIFT) != 0;
+    if (key >= 'a' && key <= 'z') {
+        c = shifted ? (key - 'a' + 'A') : key;
+    } else if (key >= 'A' && key <= 'Z') {
+        c = shifted ? key : (key - 'A' + 'a');
+    } else if (shifted) {
+        static const char shiftedSym[] = ")!@#$%^&*(";   // SDLK_0..SDLK_9
+        if (key >= '0' && key <= '9') {
+            c = shiftedSym[key - '0'];
+        } else {
+            switch (key) {
+                case SDLK_SPACE:     c = ' ';  break;
+                case SDLK_MINUS:     c = '_';  break;
+                case SDLK_EQUALS:    c = '+';  break;
+                case SDLK_LEFTBRACKET:  c = '{'; break;
+                case SDLK_RIGHTBRACKET: c = '}'; break;
+                case SDLK_BACKSLASH: c = '|';  break;
+                case SDLK_SEMICOLON: c = ':';  break;
+                case SDLK_QUOTE:     c = '"';  break;
+                case SDLK_COMMA:     c = '<';  break;
+                case SDLK_PERIOD:    c = '>';  break;
+                case SDLK_SLASH:     c = '?';  break;
+                case SDLK_BACKQUOTE: c = '~';  break;
+                default: c = key; break;
+            }
+        }
+    } else {
+        switch (key) {
+            case SDLK_RETURN:
+            case SDLK_KP_ENTER:  c = '\r'; break;
+            case SDLK_BACKSPACE: c = '\b'; break;
+            default: break;   // printable ASCII syms already match their char
+        }
+    }
+    keyInput = (char)c;
     keyValid = 1;
 }
 
