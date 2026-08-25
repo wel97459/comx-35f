@@ -237,7 +237,10 @@ static void renderFrame() {
         renderCharacter(i % charactersPerRow, i / charactersPerRow,
                         pram[addr & (PRAM_SIZE - 1)]);
         addr++;
-        if (addr > pageMemoryMask) addr = 0;
+        // EMMA02 drawTextScreen wraps at maxPageMemory_ (rows*cols), NOT at
+        // pageMemoryMask - the 960..1023 window is not part of the visible
+        // page, so wrapping at the mask shows garbage after a scroll.
+        if (addr >= n) addr = 0;
     }
 }
 
