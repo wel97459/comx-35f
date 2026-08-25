@@ -73,11 +73,12 @@ class FDC_Card extends Component
     // NOTE: on the 1802, OUT pulses MWR low; INP leaves MRD HIGH (a memory read
     // of the addressed port). So a register READ is MRD high with N==2.
     val regWrite  = !io.MRD && io.TPB && io.N === 2   // OUT 2 (write)
-    // INP 2: valid only while MWR is high AND TPB has pulsed (end of the input
-    // cycle). Sampling earlier catches bus-transition edges where the address
-    // bus still holds a ROM-window address, which would let the ExtRom decode
-    // drive DataOut with fdc.bin bytes (observed as spurious 0x80 status).
-    val regRead   =  io.MRD && !io.MWR && io.TPB && io.N === 2
+    // INP 2: MRD stays HIGH for the whole input instruction and MWR pulses low
+    // for TWO cycles (SC5-SC6) while the CPU stores the byte into M(RX). The
+    // register mux must therefore be active for both cycles - NOT gated on TPB
+    // (which only pulses at SC6), otherwise the SC5 store captures the card's
+    // default 0x00 instead of the register value.
+    val regRead   =  io.MRD && !io.MWR && io.N === 2
     val selWrite  = regWrite &&  io.Q                 // Q=1: select register
     val cmdWrite  = regWrite && !io.Q && F5_addr === 0
     val trkWrite  = regWrite && !io.Q && F5_addr === 1
@@ -101,7 +102,10 @@ class FDC_Card extends Component
     io.DataOut := 0
     io.ExtRom := False
     io.FDCRom.Addr := 0
-    io.EF4_ := !FDC_Status(1)          // EF4 = !DRQ (active-low EF line)
+    // EF4 = DRQ. Emma 02's ef1770() returns drq_ directly (no inversion in the
+    // COMX config), i.e. DRQ asserted -> EF4 reads HIGH (1). DOS polls this
+    // with B4/BN4 while waiting for each sector byte.
+    io.EF4_ := FDC_Status(1)          // EF4 = DRQ (active-high)
 
     when(selWrite) { F3_Latch := io.DataIn }
     when(selWrite && io.DataIn(4)) { FDC_Side := io.DataIn(5) }  // drive/side update
@@ -168,8 +172,10 @@ class FDC_Card extends Component
             whenIsActive {
                 FDC_Status(0) := False   // Busy
                 FDC_Status(1) := False   // DRQ
-                // TRACK0 (bit 2, type-I status): set when the head is at track 0
-                FDC_Status(2) := (FDC_Track === 0)
+                // NOTE: bit 2 is NOT refreshed here. On a real WD1770 the
+                // completion status persists until the next command; Wait4CMD
+                // rewriting the TRACK0/LostData bit made every post-command
+                // status read report type-II "Lost Data" (error 10 in DOS).
                 when(cmdLatched) {
                     switch(FDC_Command(7 downto 4)) {
                         is(0x0)         { goto(Restore_Busy) }
@@ -269,8 +275,12 @@ class FDC_Card extends Component
 
         val ReadSector_Done: State = new State {
             whenIsActive {
-                FDC_Status(0) := False   // Busy
                 FDC_INTRQ := True
+                // Type-II completion status: NO error flags on success.
+                // (In type-II status bit 2 = LostData, NOT Track0 - returning
+                // 0x04 here made DOS report error 10.) Matches Emma 02's
+                // endCommand(status_ & 0xfe) with no errors accumulated.
+                FDC_Status := 0x00
                 // Multiple-sector mode: advance to the next sector (1..15 wrap
                 // to 0 per Emma 02: sector_++ while sector_ < numberOfSectors-1)
                 when(MultiSector && FDC_Sector.asUInt < 15) {
@@ -312,7 +322,8 @@ class FDC_Card extends Component
 
         val WriteSector_Done: State = new State {
             whenIsActive {
-                FDC_Status(0) := False
+                // Type-II completion: no error flags on success (see ReadSector_Done)
+                FDC_Status := 0x00
                 FDC_INTRQ := True
                 goto(Wait4CMD)
             }

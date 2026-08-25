@@ -360,11 +360,14 @@ void fast_run() {
         if (comx->io_MRD == 0 && comx->io_N == 2 && comx->io_TPB) {   // OUT 2
             if (comx->io_Q) {
                 if (logCnt < CAP) {
-                    fprintf(stderr, "[fdc] f=%u pc=%04x OUT2 SELECT=%02X (drive=%d side=%d gate=%d)\n",
+                    Uint16 r2sel = *Rrr[2];
+                    Uint8 m2 = (r2sel >= 0x4000 && r2sel <= 0xBFFF) ? ram[r2sel - 0x4000] : (r2sel <= 0x3FFF) ? rom[r2sel] : 0xEE;
+                    fprintf(stderr, "[fdc] f=%u pc=%04x OUT2 SELECT=%02X (drive=%d side=%d gate=%d) [M[R2=%04x]=%02X]\n",
                             FrameCount, pc, comx->io_DataOut,
                             (comx->io_DataOut >> 2) & 3,   // bits 2-3: drive
                             (comx->io_DataOut >> 5) & 1,   // bit 5: side
-                            (comx->io_DataOut >> 4) & 1);  // bit 4: gate
+                            (comx->io_DataOut >> 4) & 1,   // bit 4: gate
+                            r2sel, m2);
                     ++logCnt;
                 } else if (logCnt == CAP) { fprintf(stderr, "[fdc] ...suppressing\n"); ++logCnt; }
                 selLatch = comx->io_DataOut;
@@ -413,20 +416,6 @@ void fast_run() {
     // --- memory write ---
     if (comx->io_MWR == 0 && comx->io_Addr16 >= 0x4000 && comx->io_Addr16 < 0xC000) {
         ram[comx->io_Addr16 - 0x4000] = comx->io_DataOut;
-        if (getenv("FDC_LOG") && FrameCount >= 212 && FrameCount <= 216) {
-            auto* mrr = comx->rootp;
-            const Uint16* Mrr[16] = { &mrr->comx35_fast__DOT__CPU__DOT__R_0, &mrr->comx35_fast__DOT__CPU__DOT__R_1,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_2, &mrr->comx35_fast__DOT__CPU__DOT__R_3,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_4, &mrr->comx35_fast__DOT__CPU__DOT__R_5,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_6, &mrr->comx35_fast__DOT__CPU__DOT__R_7,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_8, &mrr->comx35_fast__DOT__CPU__DOT__R_9,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_10, &mrr->comx35_fast__DOT__CPU__DOT__R_11,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_12, &mrr->comx35_fast__DOT__CPU__DOT__R_13,
-                &mrr->comx35_fast__DOT__CPU__DOT__R_14, &mrr->comx35_fast__DOT__CPU__DOT__R_15 };
-            Uint16 mpc = *Mrr[mrr->comx35_fast__DOT__CPU__DOT__P];
-            fprintf(stderr, "[memwr] f=%u pc=%04x MWR %04X <- %02X (R2=%04x)\n",
-                    FrameCount, mpc, comx->io_Addr16, comx->io_DataOut, *Mrr[2]);
-        }
     }
 
     // --- VIS register decode ---
