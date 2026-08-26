@@ -27,7 +27,11 @@ static unsigned char *sim_video;
 static struct CRT *sim_crt;
 
 static Vcomx35_fast *comx;
+static VerilatedFstC* m_trace;
 static Uint64 main_time = 0;
+
+static Uint64 main_trace=0;
+static Uint8 trace=1;
 
 // ---- memory ----
 static Uint8 rom[0x4000];
@@ -291,6 +295,13 @@ void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c) {
 
     comx = new Vcomx35_fast();
     updateDisplayParams();
+
+	#ifdef TRACE
+		Verilated::traceEverOn(true);
+		m_trace = new VerilatedFstC;
+		comx->trace(m_trace, 99);
+		m_trace->open ("simx_fast.fst");
+	#endif
 
     printf("CRT_INPUT_SIZE: %i\n", CRT_INPUT_SIZE);
 }
@@ -559,9 +570,24 @@ void fast_run() {
     main_time++;
     comx->clk = 1;
     comx->eval();
+
+    #ifdef TRACE
+        if(trace){
+            main_trace++;
+            m_trace->dump (main_trace);
+        }
+    #endif
+
     main_time++;
     comx->clk = 0;
     comx->eval();
+
+    #ifdef TRACE
+        if(trace){
+            main_trace++;
+            m_trace->dump (main_trace);
+        }
+    #endif
 
     // --- frame boundary ---
     frameClock++;
@@ -600,4 +626,9 @@ void fast_end() {
     printf("FDC disk: %u bytes read, %u bytes written\n", diskReadCount, diskWriteCount);
     comx->final();
     delete[] fb;
+
+    #ifdef TRACE
+        m_trace->close();
+    #endif
+
 }

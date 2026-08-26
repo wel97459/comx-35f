@@ -171,7 +171,11 @@ class comx35_test() extends Component {
         io.DiskByte := fdc.io.DiskByte
 
     //Latches
-        when(vis70.io.PreDisplay_.rise()){
+        // Frame interrupt: latch NTSC_PAL_FlipFlop at start of pre-display, but
+        // ONLY when the display is enabled. With DispOff (CMD bit 4) the real
+        // CDP1870 keeps PRE' (EF1) toggling — DOS's loader waits for an EF1 edge
+        // after blanking the display — but suppresses the frame interrupt.
+        when(vis70.io.PreDisplay_.rise() && vis70.io.DisplayOn){
             INT_FF := NTSC_PAL_FlipFlop
         }elsewhen((clockedArea.CPU.io.SC === 3 && clockedArea.CPU.io.TPA) && (!NTSC_PAL_FlipFlop)){
             INT_FF := True

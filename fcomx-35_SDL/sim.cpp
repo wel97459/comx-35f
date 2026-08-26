@@ -45,6 +45,23 @@ Uint8 trace=1;
 Uint8 rom[0x4000];
 Uint8 ram[0x8000];
 Uint8 fdc[0x2000];
+
+// --- floppy disk image (same layout as sim_fast.cpp) ---
+#define DISK_TRACKS 35
+#define DISK_SIDES 2
+#define DISK_SECTORS 16
+#define DISK_SECTOR_LEN 128
+#define DISK_SIZE (DISK_TRACKS * DISK_SIDES * DISK_SECTORS * DISK_SECTOR_LEN)
+static Uint8 diskImage[DISK_SIZE];
+static bool diskLoaded = false;
+static Uint32 diskReadCount = 0, diskWriteCount = 0;
+
+// Raw sector image offset: sectors are stored head-interleaved
+// (all of side 0, then all of side 1, per track).
+static Uint32 diskOffset(Uint8 track, Uint8 side, Uint8 sector, Uint8 byteIdx) {
+    return ((((Uint32)track * DISK_SIDES + side) * DISK_SECTORS + sector)
+            * DISK_SECTOR_LEN) + byteIdx;
+}
 Uint8 pram[0x400];
 Uint8 cram[0x400];
 
@@ -75,10 +92,55 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rdoos cat\r";
+char basicStr[]="\rdos cat\r";
 
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
+
+// --- live keyboard input (mirrors sim_fast.cpp) ---
+static char typedKey = 0;
+static Uint8 typedValid = 0;
+
+// Translate an SDL keysym + current modifiers into the ASCII character the
+// user actually typed (main.cpp passes the unshifted keysym).
+static char SDLKeyToAscii(int key) {
+    int c = key;
+    SDL_Keymod mod = SDL_GetModState();
+    bool shifted = (mod & KMOD_SHIFT) != 0;
+    if (key >= 'a' && key <= 'z') {
+        c = shifted ? (key - 'a' + 'A') : key;
+    } else if (key >= 'A' && key <= 'Z') {
+        c = shifted ? key : (key - 'A' + 'a');
+    } else if (shifted) {
+        static const char shiftedSym[] = ")!@#$%^&*(";   // SDLK_0..SDLK_9
+        if (key >= '0' && key <= '9') {
+            c = shiftedSym[key - '0'];
+        } else {
+            switch (key) {
+                case SDLK_MINUS:        c = '_'; break;
+                case SDLK_EQUALS:       c = '+'; break;
+                case SDLK_LEFTBRACKET:  c = '{'; break;
+                case SDLK_RIGHTBRACKET: c = '}'; break;
+                case SDLK_BACKSLASH:    c = '|'; break;
+                case SDLK_SEMICOLON:    c = ':'; break;
+                case SDLK_QUOTE:        c = '"'; break;
+                case SDLK_COMMA:        c = '<'; break;
+                case SDLK_PERIOD:       c = '>'; break;
+                case SDLK_SLASH:        c = '?'; break;
+                case SDLK_BACKQUOTE:    c = '~'; break;
+                default: c = key; break;
+            }
+        }
+    } else {
+        switch (key) {
+            case SDLK_RETURN:
+            case SDLK_KP_ENTER:  c = '\r'; break;
+            case SDLK_BACKSPACE: c = '\b'; break;
+            default: break;   // printable ASCII syms already match their char
+        }
+    }
+    return (char)c;
+}
 
 char ComxKeyboard(char keyCode)
 {
@@ -190,6 +252,8 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
     genIQ();
     loadFile("../data/comx35.1.3.bin", rom, 0x4000);
     loadFile("../data/fdc.bin", fdc, 0x2000);
+    diskLoaded = (loadFile("../data/dos.img", diskImage, DISK_SIZE) == 0);
+    printf("disk image: %s\n", diskLoaded ? "loaded" : "NOT FOUND");
 
     //cxh = LoadComx("/home/winston/emma_02_data/Comx/Games/Happiehap\ 2.comx");
    //cxh = LoadComx("/home/winston/Projects/C/RCA1802Toolkit/comx_testing/tetris/T3tr1s.comx");
@@ -208,38 +272,21 @@ void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
 }
 
 void sim_keyevent(int key){
-    if (key == SDLK_9 && colors.index > 0) {
-        colors.index -= 1;
-        printf("Index:%i\n", colors.index);
+    // Modifier keys must not be typed into the emulated machine
+    // (SDLK_LSHIFT = 0x65 would arrive as 'E').
+    if (key == SDLK_LSHIFT || key == SDLK_RSHIFT ||
+        key == SDLK_LCTRL  || key == SDLK_RCTRL ||
+        key == SDLK_LALT   || key == SDLK_RALT ||
+        key == SDLK_LGUI   || key == SDLK_RGUI ||
+        key == SDLK_CAPSLOCK || key == SDLK_NUMLOCKCLEAR) {
+        return;
     }
-    if (key == SDLK_0 && colors.index < 8) {
-        colors.index += 1;
-        printf("Index:%i\n", colors.index);
-    }
-    if (key == SDLK_o) {
-        colors.Amplitude[colors.index] -= 1000;
-        printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
-    }
-    if (key == SDLK_p) {
-        colors.Amplitude[colors.index] += 1000;
-        printf("Amplitude[%u]:%i\n",colors.index, colors.Amplitude[colors.index]);
-    }
-    if (key == SDLK_k) {
-        colors.Phase[colors.index]-= 50;
-        printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
-    }
-    if (key == SDLK_l) {
-        colors.Phase[colors.index]+= 50;
-        printf("Phase[%u]:%i\n",colors.index, colors.Phase[colors.index]);
-    }
-    if (key == SDLK_n) {
-        colors.PhaseAmp[colors.index]-= 50;
-        printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
-    }
-    if (key == SDLK_m) {
-        colors.PhaseAmp[colors.index]+= 50;
-        printf("PhaseAmp[%u]:%i\n",colors.index, colors.PhaseAmp[colors.index]);
-    }
+
+    typedKey = SDLKeyToAscii(key);
+    typedValid = 1;
+    // A live keypress ends the auto-typewriter so it doesn't fight the user.
+    *keyInput = 0;
+    
 }
 
 Uint32 colorsRGB[]={
@@ -302,6 +349,23 @@ void sim_run(){
     comx->io_Tape_in = true; 
     comx->io_FDCRom_DataIn = fdc[comx->io_FDCRom_Addr];
 
+    // --- FDC disk byte interface (mirrors sim_fast.cpp) ---
+    // The FDC card requests a byte from the host during a read sector/track
+    // and offers one during a write. Address it within the raw sector image
+    // using the track/sector/side/byte the card exposes.
+    if (diskLoaded && comx->io_DiskReadReq) {
+        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
+                                comx->io_DiskSector, comx->io_DiskByte);
+        comx->io_DiskDataIn = (off < DISK_SIZE) ? diskImage[off] : 0xFF;
+        diskReadCount++;
+    }
+    if (diskLoaded && comx->io_DiskWriteReq) {
+        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
+                                comx->io_DiskSector, comx->io_DiskByte);
+        if (off < DISK_SIZE) diskImage[off] = comx->io_DiskDataOut;
+        diskWriteCount++;
+    }
+
     if(comx->io_MRD == false && comx->io_ExtRom ){
         comx->io_DataIn = comx->io_Card_DataOut;
     } else if (comx->io_MRD == false && comx->io_Addr16 <= 0x3FFF) {
@@ -337,18 +401,23 @@ void sim_run(){
         FrameCurent = FrameCount + 4;
     }
 
-    if(FrameCount == 10 && comx->io_KBD_Ready){
+    if(FrameCount == 40 && comx->io_KBD_Ready){
             comx->io_KBD_Latch = true;
-            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput++));
     } 
 
-    if(((FrameCount >= 84 && FrameCount <= 105) || FrameCount >= 142) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
+    if((FrameCount >= 120) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
             comx->io_KBD_Latch = true;
-            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput));
+            comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput++));
     }
 
-    if(Ready_Edge && !comx->io_KBD_Ready) keyInput++;
-
+    // Live typed key (from sim_keyevent): deliver once when the keyboard is
+    // ready, taking priority over the basicStr typewriter.
+    if (typedValid && comx->io_KBD_Ready && FrameCount > FrameCurent) {
+        comx->io_KBD_Latch = true;
+        comx->io_KBD_KeyCode = ComxKeyboard(typedKey);
+        typedValid = 0;
+    }
 
     if(!comx->io_VSync_ && VSync_Edge){
         sim_draw();
@@ -378,35 +447,17 @@ void sim_run(){
     }
     doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
 
-    if(trace && 0){
-        if(P_Last != comx_Syms->TOP__comx35_test__clockedArea_CPU.__Vdly__P)
-        {
-            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 5 || comx_Syms->TOP__comx35_test__clockedArea_CPU.P == 4) R3_Last=comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3;
-            if(P_Last == 5)printf("Cret: 0x%04x->0x%04x\n", R3_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3);
-            if(P_Last == 4)printf("Call: 0x%04x->0x%04x\n",R3_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.R_3);
-            if(P_Last == 4 || P_Last == 5)printf("\tR2: 0x%04x\n\n", comx_Syms->TOP__comx35_test__clockedArea_CPU.R_2);
-        }
-        if(MW_Last < comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR){
-            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 > 0xbd00 && comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 <= 0xbdff){
-                printf("0x%04X: Write: 0x%04x = 0x%02x\n", ADDR_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16, comx_Syms->TOP__comx35_test__clockedArea_CPU.D);
-            }
-        }
-        if(MR_Last < comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD){
-            if(comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 > 0xbd00 && comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16 <= 0xbdff){
-                printf("0x%04X: Read: 0x%04x = 0x%02x\n", ADDR_Last, comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16, comx_Syms->TOP__comx35_test__clockedArea_CPU.D);
-            }
-            ADDR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_Addr16;
-        }
-        P_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.P;
-        MW_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MWR;
-        MR_Last = comx_Syms->TOP__comx35_test__clockedArea_CPU.io_MRD;
-    }
+    // NOTE: the old CPU-register trace block (comx_Syms->TOP__comx35_test__clockedArea_CPU)
+    // was removed - it referenced stale Verilator internal symbol names that no
+    // longer exist after the FDC disk-interface signals were added to the model.
+    // It was dead code anyway (gated on `trace && 0`).
     Display_Edge = comx->io_Display_;
     HSync_Edge = comx->io_HSync_;
     VSync_Edge = comx->io_VSync_;
     Ready_Edge = comx->io_KBD_Ready;
     Burst_Edge = comx->io_Burst;
     Video_Last = comx->io_Video;
+    
     main_time++;
     comx->clk = 1;
     comx->eval();
@@ -433,7 +484,8 @@ void sim_run(){
 void sim_end()
 {
     printf("Ended.\n");
-    comxFree(cxh);
+    printf("FDC disk: %u bytes read, %u bytes written\n", diskReadCount, diskWriteCount);
+    if (cxh) comxFree(cxh);   // cxh is only set when a .comx program was loaded
     comx->final();
 
     #ifdef TRACE

@@ -8,6 +8,7 @@ class CDP1870 extends Component{
         val VSync_ = out Bool()
         val Display_ = out Bool()
         val PreDisplay_ = out Bool()
+        val DisplayOn = out Bool()
         val AddSTB_ = out Bool()
         val CPUCLK = out Bool()
 
@@ -127,7 +128,13 @@ class CDP1870 extends Component{
     io.HSync_ := !HSync
     io.VSync_ := !VSync
     io.Display_ := !DispOff ?  !VDisplay | True
-    io.PreDisplay_ := !DispOff ? !VPreDisplay | True
+    // NOTE: DispOff must NOT gate PreDisplay_/EF1. The vertical counter keeps
+    // running with the display blanked (real CDP1870 behaviour), and DOS's
+    // loader (fdc.bin 0xC06A: BN1/-B1 pair) waits for an EF1 edge AFTER writing
+    // CMD=0xF0 (DispOff). Freezing EF1 under DispOff hangs DOS in an infinite
+    // B1 loop right after loading the bootstrap sectors (seen as error 104).
+    io.PreDisplay_ := RegNext(!VPreDisplay) init(True)
+    io.DisplayOn := !DispOff
 
     io.AddSTB_ := AddSTB_
     io.DataOut := 0x00

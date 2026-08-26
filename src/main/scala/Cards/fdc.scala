@@ -90,13 +90,13 @@ class FDC_Card extends Component
     // edge detection (single-cycle pulses for the FSM)
     // cmdWriteRise fires the cycle the command byte is on the bus; the FSM must
     // wait one more cycle for FDC_Command to latch, so it uses cmdLatched.
-    val cmdWriteD    = RegNext(cmdWrite) init(False)
-    val cmdWriteRise = cmdWrite && !cmdWriteD
+
+    val cmdWriteRise = cmdWrite.rise()
     val cmdLatched   = RegNext(cmdWriteRise) init(False)
-    val datReadD     = RegNext(datRead) init(False)
-    val datReadRise  = datRead && !datReadD
-    val datWriteD    = RegNext(datWrite) init(False)
-    val datWriteRise = datWrite && !datWriteD
+    val datReadLatched  = RegNext(datRead) init(False)
+    val datWriteLatched  = RegNext(datWrite) init(False)
+    val datReadRise  = datReadLatched && io.MWR.rise()
+    val datWriteRise = datWriteLatched && io.MWR.rise()
 
     // ---- register interface ----
     io.DataOut := 0
