@@ -7,6 +7,9 @@ TOP_FILE=./gen/$(TARGET).v
 PIN_BINDING_FILE=pins.lpf
 
 all: prog
+# generate hardware code from spinal code
+$(TOP_FILE): $(OBJS)
+	cd .. && sbt "runMain $(SPINAL_TARGET)" && cd Colorlight_I5V6_ECP5
 
 # synthetize rtl (generates a json file)
 $(TARGET).json: $(TOP_FILE)
