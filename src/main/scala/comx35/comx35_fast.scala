@@ -51,9 +51,10 @@ class comx35_fast() extends Component {
     val Disk = new Bundle {
       val ReadReq = out Bool ()
       val DataIn = in Bits (8 bits)
-      val DataInValid = in Bool ()
+      val Valid = in Bool ()
       val WriteReq = out Bool ()
       val DataOut = out Bits (8 bits)
+      val Ready = in Bool ()
       val Track = out Bits (8 bits)
       val Sector = out Bits (8 bits)
       val Side = out Bool ()
@@ -98,7 +99,8 @@ class comx35_fast() extends Component {
   fdc.io.FDCRom.DataIn := io.FDCRom.DataIn
   io.Disk.ReadReq := fdc.io.Disk.ReadReq
   fdc.io.Disk.DataIn := io.Disk.DataIn
-  fdc.io.Disk.DataInValid := io.Disk.DataInValid
+  fdc.io.Disk.Valid := io.Disk.Valid
+  fdc.io.Disk.Ready := io.Disk.Ready
   io.Disk.WriteReq := fdc.io.Disk.WriteReq
   io.Disk.DataOut := fdc.io.Disk.DataOut
   io.Disk.Track := fdc.io.Disk.Track

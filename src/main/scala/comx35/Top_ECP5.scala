@@ -172,7 +172,8 @@ class Top_ECP5 extends Component {
         comx35.io.KBD_Repeat := False
 
         comx35.io.Disk.DataIn := 0
-        comx35.io.Disk.DataInValid := False
+        comx35.io.Disk.Valid := False
+        comx35.io.Disk.Ready := False
 
         val keyHit = Reg(Bool()) init (False)
         when(comx35.io.KBD_Ready && comx35.io.Display_.rise()) {
