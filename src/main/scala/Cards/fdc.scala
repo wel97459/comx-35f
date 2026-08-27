@@ -94,9 +94,8 @@ class FDC_Card extends Component
     val cmdWriteRise = cmdWrite.rise()
     val cmdLatched   = RegNext(cmdWriteRise) init(False)
     val datReadLatched  = RegNext(datRead) init(False)
-    val datWriteLatched  = RegNext(datWrite) init(False)
-    val datReadRise  = datReadLatched && io.MWR.rise()
-    val datWriteRise = datWriteLatched && io.MWR.rise()
+    val datWriteRise = datWrite
+    val datReadRise = datReadLatched && io.MWR.rise()
 
     // ---- register interface ----
     io.DataOut := 0
