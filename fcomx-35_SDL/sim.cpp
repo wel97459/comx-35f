@@ -59,6 +59,7 @@ static Uint32 diskReadCount = 0, diskWriteCount = 0;
 // Raw sector image offset: sectors are stored head-interleaved
 // (all of side 0, then all of side 1, per track).
 static Uint32 diskOffset(Uint8 track, Uint8 side, Uint8 sector, Uint8 byteIdx) {
+    if(byteIdx==0) printf("diskOffset: track=%u side=%u sector=%u: ", track, side, sector);
     return ((((Uint32)track * DISK_SIDES + side) * DISK_SECTORS + sector)
             * DISK_SECTOR_LEN) + byteIdx;
 }
@@ -92,7 +93,7 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rdos cat\r";
+char basicStr[]="\rdos run,\"f&m diskmonitor\"\r";
 
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
@@ -210,7 +211,7 @@ int loadFile(const char *filename, Uint8 *pointer, const Uint32 len)
     return 0;
 }
 
-int saveFile(const char *filename, Uint8 *pointer, const Uint32 len)
+int saveFile(const char *filename, const void *pointer, const Uint32 len)
 {
     FILE *fp = fopen(filename, "w+");
     if ( fp == 0 )
@@ -238,7 +239,7 @@ void genIQ()
     }
 }
 
-void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c){
+void sim_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c, int argc, char **argv){
     //screenPixels = p;
     sim_draw = d;
     screen = td;
@@ -357,12 +358,14 @@ void sim_run(){
         Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
                                 comx->io_DiskSector, comx->io_DiskByte);
         comx->io_DiskDataIn = (off < DISK_SIZE) ? diskImage[off] : 0xFF;
+        if(comx->io_DiskByte == 0) printf(" Read\n");
         diskReadCount++;
     }
     if (diskLoaded && comx->io_DiskWriteReq) {
         Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
                                 comx->io_DiskSector, comx->io_DiskByte);
         if (off < DISK_SIZE) diskImage[off] = comx->io_DiskDataOut;
+        if(comx->io_DiskByte == 0) printf(" Write\n");
         diskWriteCount++;
     }
 
@@ -406,7 +409,7 @@ void sim_run(){
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput++));
     } 
 
-    if((FrameCount >= 120) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
+    if((FrameCount >= 115) && FrameCount > FrameCurent && comx->io_KBD_Ready && *keyInput != 0x00){
             comx->io_KBD_Latch = true;
             comx->io_KBD_KeyCode = ComxKeyboard(*(keyInput++));
     }
@@ -428,8 +431,11 @@ void sim_run(){
         ticksLast = ticks;
         screenshot(tmpstr);
         vidTime = 0;
-        memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
-
+        //memset(sim_crt->analog, 0, CRT_INPUT_SIZE);
+        if(FrameCount == 350){
+            saveFile("video.ntsc", sim_crt->analog, CRT_INPUT_SIZE);
+            printf("Saved video.ntsc\n");
+        }
         // if(FrameCount == 90){
         //     memcpy(&ram[cxh->address_start-0x4000], cxh->data, cxh->len);
         //     memcpy(&ram[DEFUS_ADDR-0x4000], &cxh->defus, 2);
@@ -447,17 +453,13 @@ void sim_run(){
     }
     doNTSC(comx->io_Sync, comx->io_Pixel, comx->io_Burst, comx->io_Color);
 
-    // NOTE: the old CPU-register trace block (comx_Syms->TOP__comx35_test__clockedArea_CPU)
-    // was removed - it referenced stale Verilator internal symbol names that no
-    // longer exist after the FDC disk-interface signals were added to the model.
-    // It was dead code anyway (gated on `trace && 0`).
     Display_Edge = comx->io_Display_;
     HSync_Edge = comx->io_HSync_;
     VSync_Edge = comx->io_VSync_;
     Ready_Edge = comx->io_KBD_Ready;
     Burst_Edge = comx->io_Burst;
     Video_Last = comx->io_Video;
-    
+
     main_time++;
     comx->clk = 1;
     comx->eval();

@@ -9,5 +9,7 @@
 !sim.cpp
 !sim_fast.cpp
 !sim.h
+!sim_tv.cpp
+!sim_tv.h
 !stb_image_write.h
 !run.sh

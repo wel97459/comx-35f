@@ -63,11 +63,11 @@ extern "C" {
  * 
  */
 #define DOT_ns 176UL
-#define DOTx6_ns 1058UL
+#define DOTx6_ns DOT_ns * 6UL
 #define LINE_BEG         0
 #define FP_ns            (1*DOTx6_ns)      /* front porch */
 #define SYNC_ns          (4*DOTx6_ns)      /* sync tip */
-#define BW_ns            (1*DOTx6_ns)       /* breezeway */
+#define BW_ns            (1*DOTx6_ns)      /* breezeway */
 #define CB_ns            (3*DOTx6_ns)      /* color burst */
 #define BP_ns            (1*DOTx6_ns)      /* back porch */
 #define AV_ns            (50*DOTx6_ns)     /* active video */

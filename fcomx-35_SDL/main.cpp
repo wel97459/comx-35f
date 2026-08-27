@@ -4,23 +4,19 @@
 #include <vector>
 #include <cstring>
 #include "sim.h"
+#include "sim_fast.h"
+#include "sim_tv.h"
 #include "crt_core.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 using namespace std;
 
-// ---- sim backend selection (--fast) ----
-// Fast (emulated VIS) backend lives in sim_fast.cpp; hardware backend in sim.cpp.
-extern void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c);
-extern void fast_keyevent(int key);
-extern void fast_run();
-extern void fast_end();
-
-static void (*sim_init_fn)(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c);
+static void (*sim_init_fn)(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c, int argc, char **argv);
 static void (*sim_keyevent_fn)(int key);
 static void (*sim_run_fn)();
 static void (*sim_end_fn)();
+
 //SDL renderer and single font (leaving global for simplicity)
 SDL_Renderer *renderer;
 SDL_Window *window;
@@ -154,16 +150,24 @@ int main(int argc, char *argv[])
     roll=0;
 
     // Select sim backend: --fast → emulated VIS, otherwise full hardware.
-    bool fast = false;
+    int fast = -1;
+    int tv = -1;
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--fast") == 0) fast = true;
+        if (strcmp(argv[i], "--fast") == 0) fast = i;
+        if (strcmp(argv[i], "--tv") == 0) tv = i;
     }
-    if (fast) {
+    if (fast != -1) {
         sim_init_fn     = fast_init;
         sim_keyevent_fn = fast_keyevent;
         sim_run_fn      = fast_run;
         sim_end_fn      = fast_end;
         printf("Using emulated-VIS (fast) backend.\n");
+    } else if (tv != -1) {
+        sim_init_fn     = tv_init;
+        sim_keyevent_fn = tv_keyevent;
+        sim_run_fn      = tv_run;
+        sim_end_fn      = tv_end; 
+        printf("Using TV backend.\n");
     } else {
         sim_init_fn     = sim_init;
         sim_keyevent_fn = sim_keyevent;
@@ -176,7 +180,7 @@ int main(int argc, char *argv[])
     video = (unsigned char *) malloc((WINDOW_WIDTH * WINDOW_HEIGHT) * sizeof(int));
     crt_init(&crt, WINDOW_WIDTH, WINDOW_HEIGHT, CRT_PIX_FORMAT_RGBA, video);
 
-    sim_init_fn(video, texDisplay, drawCRT, &crt);
+    sim_init_fn(video, texDisplay, drawCRT, &crt, argc, argv);
     crt.blend = 1;
     crt.scanlines = 0;
 

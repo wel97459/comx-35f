@@ -13,7 +13,7 @@
 #include <vector>
 #include <cstring>
 #include <cstdio>
-#include "sim.h"
+#include "sim_fast.h"
 #include "crt_core.h"
 #include "comx_loader.h"
 #include <verilated_fst_c.h>
@@ -52,10 +52,9 @@ static Uint32 diskWriteCount = 0;
 
 // Byte offset in the raw image for (track, side, sector, byte-index).
 static Uint32 diskOffset(Uint8 track, Uint8 side, Uint8 sector, Uint8 byteIdx) {
-    Uint32 o = ((Uint32)track * DISK_SIDES + side);   // head-interleaved per track
-    o = o * DISK_SECTORS + sector;
-    o = o * DISK_SECTOR_LEN + byteIdx;
-    return o;
+    if(byteIdx==0) printf("diskOffset: track=%u side=%u sector=%u\n", track, side, sector);
+    return ((((Uint32)track * DISK_SIDES + side) * DISK_SECTORS + sector)
+            * DISK_SECTOR_LEN) + byteIdx;
 }
 
 // ---- keyboard ----
@@ -278,7 +277,7 @@ static void renderToCRT() {
 
 // ---- interface ----
 
-void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c) {
+void fast_init(unsigned char *v, SDL_Texture *td, void (*d)(), struct CRT *c, int argc, char **argv) {
     sim_draw  = d;
     screen    = td;
     sim_video = v;
@@ -520,7 +519,7 @@ void fast_run() {
     //   2) wait for BASIC READY
     //   3) "DOS CAT" + Enter (lists the disk directory and loads the DOS system)
     if (!getenv("NO_AUTO_DOS")) {
-        static const char stage2[] = "dos cat\r";
+        static const char stage2[] = "dos new\r";
         if (autoStage == 0 && FrameCount >= 60) {          // logo screen -> ENTER
             if (!keyValid && comx->io_KBD_Ready && FrameCount > FrameCurent &&
                 FrameCount > lastKeyFrame + 6) {
@@ -624,6 +623,16 @@ void fast_run() {
 void fast_end() {
     printf("Ended (fast).\n");
     printf("FDC disk: %u bytes read, %u bytes written\n", diskReadCount, diskWriteCount);
+    if(diskWriteCount > 0){
+        FILE *fp = fopen("../data/dos.img", "wb");
+        if (fp) {
+            fwrite(diskImage, 1, DISK_SIZE, fp);
+            fclose(fp);
+            printf("Wrote disk image to ../data/dos.img\n");
+        } else {
+            printf("Could not write disk image to ../data/dos.img\n");
+        }
+    }
     comx->final();
     delete[] fb;
 

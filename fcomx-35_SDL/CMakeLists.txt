@@ -41,25 +41,26 @@ add_library(dt_lib SHARED
  ${VERILATOR_ROOT}/include/verilated.cpp
 )
 
-#verilate(dt_lib SOURCES ../comx35_test.v)
+verilate(dt_lib SOURCES ./rtl/comx35_test.v INCLUDE_DIRS "../" VERILATOR_ARGS "-savable" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast VERILATOR_ARGS -prof-cfuncs)
 #verilate(dt_lib SOURCES ./rtl/comx35_test.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-savable" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast VERILATOR_ARGS -prof-cfuncs)
-verilate(dt_lib SOURCES ./rtl/comx35_test.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-savable" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast VERILATOR_ARGS -prof-cfuncs)
 
 # Fast (emulated VIS) model: CPU + FDC + keyboard, no video hardware.
 add_library(dt_lib_fast SHARED
  ${VERILATOR_ROOT}/include/verilated.cpp
 )
-verilate(dt_lib_fast SOURCES ./gen/comx35_fast.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast)
+verilate(dt_lib_fast SOURCES ./gen/comx35_fast.v INCLUDE_DIRS "../" VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast)
+#verilate(dt_lib_fast SOURCES ./gen/comx35_fast.v INCLUDE_DIRS "../" TRACE_FST VERILATOR_ARGS "-O3" VERILATOR_ARGS -x-assign fast VERILATOR_ARGS -x-initial fast)
 
 add_executable(${CMAKE_PROJECT_NAME}
   main.cpp
   sim.cpp
   sim_fast.cpp
+  sim_tv.cpp
   crt_core.c
   crt_ntsc.c
   comx_loader.cpp
 )
 
-set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS TRACE)
+#set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS TRACE)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} dt_lib dt_lib_fast -lSDL2_ttf ${SDL2_LIBRARIES} lz4)

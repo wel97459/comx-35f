@@ -1,5 +1,5 @@
-#ifndef SIM_CLASS_H
-#define SIM_CLASS_H
+#ifndef SIM_TV_CLASS_H
+#define SIM_TV_CLASS_H
     #define WINDOW_WIDTH 832
     #define WINDOW_HEIGHT 624
 
@@ -13,8 +13,8 @@
 
     void screenshot(const char filename[]);
 
-    void sim_init(unsigned char *v, SDL_Texture *td ,void (*d)(), struct CRT *c, int argc, char **argv);
-    void sim_keyevent(int key);
-    void sim_run();
-    void sim_end();
+    void tv_init(unsigned char *v, SDL_Texture *td ,void (*d)(), struct CRT *c, int argc, char **argv);
+    void tv_keyevent(int key);
+    void tv_run();
+    void tv_end();
 #endif
