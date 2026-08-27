@@ -10,334 +10,340 @@ import scala.util.control._
 import java.nio.file.{Files, Paths}
 
 case class Memory(Size: Int) {
-    val content = new Array[Int](Size+1);
+  val content = new Array[Int](Size + 1);
 
-    def write(address: Long, data: Int): Unit = {
-        content(address.toInt & Size) = data & 0xff
-    }
+  def write(address: Long, data: Int): Unit = {
+    content(address.toInt & Size) = data & 0xff
+  }
 
-    def read(address: Long): Int = {
-        content(address.toInt & Size) & 0xff
-    }
+  def read(address: Long): Int = {
+    content(address.toInt & Size) & 0xff
+  }
 
-    def loadBin(offset: Long, file: String): Unit = {
-        val bin = Files.readAllBytes(Paths.get(file))
-        for (byteId <- 0 until bin.size) {
-            write(offset + byteId, bin(byteId))
-        }
+  def loadBin(offset: Long, file: String): Unit = {
+    val bin = Files.readAllBytes(Paths.get(file))
+    for (byteId <- 0 until bin.size) {
+      write(offset + byteId, bin(byteId))
     }
+  }
 }
 
 class comx35_test() extends Component {
-    val io = new Bundle {
-        val Addr16 = out Bits(16 bit)
-        val DataOut = out Bits(8 bit)
-        val DataIn = in Bits(8 bit)
-        val MRD = out Bool()
-        val MWR = out Bool()
-        val N = out Bits(3 bit)
+  val io = new Bundle {
+    val Addr16 = out Bits (16 bit)
+    val DataOut = out Bits (8 bit)
+    val DataIn = in Bits (8 bit)
+    val MRD = out Bool ()
+    val MWR = out Bool ()
+    val N = out Bits (3 bit)
 
-        val PMA = out Bits(10 bits)
-        val PMWR_ = out Bool() 
-        val PMD_In = in Bits(8 bit)
-        val PMD_Out = out Bits(8 bit)
+    val PMA = out Bits (10 bits)
+    val PMWR_ = out Bool ()
+    val PMD_In = in Bits (8 bit)
+    val PMD_Out = out Bits (8 bit)
 
-        val CMA = out Bits(10 bits)
-        val CMWR_ = out Bool() 
-        val CMD_In = in Bits(8 bit)
-        val CMD_Out = out Bits(8 bit)
+    val CMA = out Bits (10 bits)
+    val CMWR_ = out Bool ()
+    val CMD_In = in Bits (8 bit)
+    val CMD_Out = out Bits (8 bit)
 
-        val CMA3_PMA10 = out Bool()
+    val CMA3_PMA10 = out Bool ()
 
-        val Start = in Bool()
-        val Wait = in Bool()
-        
-        val HSync_ = out Bool()
-        val VSync_ = out Bool()
-        val Display_ = out Bool()
-        val Color = out Bits(3 bits)
-        val Pixel = out Bool()
-        val Burst = out Bool()
-        val Sync = out Bool()
+    val Start = in Bool ()
+    val Wait = in Bool ()
 
-        val KBD_Latch = in Bool()
-        val KBD_Repeat = in Bool()
-        val KBD_KeyCode = in Bits(8 bits)
-        val KBD_Ready = out Bool()
-        val Q = out Bool()
-        val Tape_in = in Bool()
-        val Sound = out SInt(6 bits)
-        val Video = in UInt(8 bits)
-        val testing = in UInt(8 bits)
-        val vI = in UInt(8 bits)
-        val vQ = in UInt(8 bits)
-        val vY = in UInt(8 bits)
+    val HSync_ = out Bool ()
+    val VSync_ = out Bool ()
+    val Display_ = out Bool ()
+    val Color = out Bits (3 bits)
+    val Pixel = out Bool ()
+    val Burst = out Bool ()
+    val Sync = out Bool ()
 
-        val ExtRom = out Bool()
-        val Card_DataOut = out Bits(8 bits)
-        val FDCRom = new Bundle {
-            val DataIn = in Bits(8 bit)
-            val Addr = out Bits(13 bit)
-        }
-        // FDC disk byte interface (served by software)
-        val Disk = new Bundle {
-            val ReadReq = out Bool()
-            val DataIn = in Bits(8 bits)
-            val DataInValid = in Bool()
-            val WriteReq = out Bool()
-            val DataOut = out Bits(8 bits)
-            val Track = out Bits(8 bits)
-            val Sector = out Bits(8 bits)
-            val Side = out Bool()
-            val Byte = out UInt(7 bits)
-        }
+    val KBD_Latch = in Bool ()
+    val KBD_Repeat = in Bool ()
+    val KBD_KeyCode = in Bits (8 bits)
+    val KBD_Ready = out Bool ()
+    val Q = out Bool ()
+    val Tape_in = in Bool ()
+    val Sound = out SInt (6 bits)
+    val Video = in UInt (8 bits)
+    val testing = in UInt (8 bits)
+    val vI = in UInt (8 bits)
+    val vQ = in UInt (8 bits)
+    val vY = in UInt (8 bits)
+
+    val ExtRom = out Bool ()
+    val Card_DataOut = out Bits (8 bits)
+    val FDCRom = new Bundle {
+      val DataIn = in Bits (8 bit)
+      val Addr = out Bits (13 bit)
     }
-
-    //Components
-    val vis69 = new VIS.CDP1869()
-    val vis70 = new VIS.CDP1870()
-    val kbd71 = new VIS.CDP1871()
-
-    val fdc = new FDC_Card()
-    val clockedArea = new ClockEnableArea(vis70.io.CPUCLK) {
-        val CPU = new Spinal1802.Spinal1802()
-        //val CPU = new new1802.new1802()
+    // FDC disk byte interface (served by software)
+    val Disk = new Bundle {
+      val ReadReq = out Bool ()
+      val DataIn = in Bits (8 bits)
+      val DataInValid = in Bool ()
+      val WriteReq = out Bool ()
+      val DataOut = out Bits (8 bits)
+      val Track = out Bits (8 bits)
+      val Sector = out Bits (8 bits)
+      val Side = out Bool ()
+      val Byte = out UInt (7 bits)
     }
+  }
 
-    //Cons
-        clockedArea.CPU.io.DMA_Out_n := True
-        clockedArea.CPU.io.DMA_In_n := True
-        vis70.io.PalOrNTSC := False
-        
-    //Registers
-        val NTSC_PAL_FlipFlop = RegNextWhen(False, clockedArea.CPU.io.Q, True) init(True)
-        val INT_FF = Reg(Bool()) init(True)
+  // Components
+  val vis69 = new VIS.CDP1869()
+  val vis70 = new VIS.CDP1870()
+  val kbd71 = new VIS.CDP1871()
 
-    //Signals
-        val DataInSel = kbd71.io.KBD_SEL ## vis69.io.CMSEL ## vis69.io.PMSEL
+  val fdc = new FDC_Card()
+  val clockedArea = new ClockEnableArea(vis70.io.CPUCLK) {
+    val CPU = new Spinal1802.Spinal1802()
+    // val CPU = new new1802.new1802()
+  }
 
-    //Interconnects   
-        vis69.io.Addr := clockedArea.CPU.io.Addr
-        vis69.io.TPA := clockedArea.CPU.io.TPA
-        vis69.io.TPB := clockedArea.CPU.io.TPB
-        vis69.io.N := clockedArea.CPU.io.N
-        vis69.io.MWR := clockedArea.CPU.io.MWR
-        vis69.io.MRD := clockedArea.CPU.io.MRD
-        
-        vis69.io.Display_ := vis70.io.Display_
-        vis69.io.AddSTB_ := vis70.io.AddSTB_
-        vis69.io.HSync_ := vis70.io.HSync_
-        
-        io.PMA := vis69.io.PMA
-        io.PMWR_ := vis69.io.PMWR_
-        io.PMD_Out := clockedArea.CPU.io.DataOut
+  // Cons
+  clockedArea.CPU.io.DMA_Out_n := True
+  clockedArea.CPU.io.DMA_In_n := True
+  vis70.io.PalOrNTSC := False
 
-        io.CMA := vis69.io.CMA(2 downto 0) ## io.PMD_In(6 downto 0)
-        io.CMWR_ := vis69.io.CMWR_
-        io.CMD_Out := clockedArea.CPU.io.DataOut
+  // Registers
+  val NTSC_PAL_FlipFlop =
+    RegNextWhen(False, clockedArea.CPU.io.Q, True) init (True)
+  val INT_FF = Reg(Bool()) init (True)
 
-        vis70.io.DataIn := clockedArea.CPU.io.DataOut
-        vis70.io.MRD := clockedArea.CPU.io.MRD
-        vis70.io.TPB := clockedArea.CPU.io.TPB
-        vis70.io.N3_ := vis69.io.N3_
-        vis70.io.CMSEL := vis69.io.CMSEL
-        vis70.io.CDB_in := io.CMD_In(5 downto 0)
-        vis70.io.CCB_in := io.PMD_In(7) ## io.CMD_In(7 downto 6)
+  // Signals
+  val DataInSel = kbd71.io.KBD_SEL ## vis69.io.CMSEL ## vis69.io.PMSEL
 
-        kbd71.io.TPB := clockedArea.CPU.io.TPB
-        kbd71.io.MRD_ := clockedArea.CPU.io.MRD
-        kbd71.io.N3_ := vis69.io.N3_
+  // Interconnects
+  vis69.io.Addr := clockedArea.CPU.io.Addr
+  vis69.io.TPA := clockedArea.CPU.io.TPA
+  vis69.io.TPB := clockedArea.CPU.io.TPB
+  vis69.io.N := clockedArea.CPU.io.N
+  vis69.io.MWR := clockedArea.CPU.io.MWR
+  vis69.io.MRD := clockedArea.CPU.io.MRD
 
-        clockedArea.CPU.io.Wait_n := io.Wait
-        clockedArea.CPU.io.Clear_n := io.Start
-        clockedArea.CPU.io.EF_n := (fdc.io.EF4_) ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
-        clockedArea.CPU.io.Interrupt_n := INT_FF
+  vis69.io.Display_ := vis70.io.Display_
+  vis69.io.AddSTB_ := vis70.io.AddSTB_
+  vis69.io.HSync_ := vis70.io.HSync_
 
-        fdc.io.Addr16 := clockedArea.CPU.io.Addr16
-        fdc.io.DataIn := clockedArea.CPU.io.DataOut
-        io.Card_DataOut := fdc.io.DataOut
-        fdc.io.MRD := clockedArea.CPU.io.MRD
-        fdc.io.MWR := clockedArea.CPU.io.MWR
-        fdc.io.TPB := clockedArea.CPU.io.TPB
-        fdc.io.N := clockedArea.CPU.io.N
-        fdc.io.Q := clockedArea.CPU.io.Q
-        io.ExtRom := fdc.io.ExtRom
-        io.FDCRom.Addr := fdc.io.FDCRom.Addr
-        fdc.io.FDCRom.DataIn :=  io.FDCRom.DataIn
-        io.Disk.ReadReq := fdc.io.Disk.ReadReq
-        fdc.io.Disk.DataIn := io.Disk.DataIn
-        fdc.io.Disk.DataInValid := io.Disk.DataInValid
-        io.Disk.WriteReq := fdc.io.Disk.WriteReq
-        io.Disk.DataOut := fdc.io.Disk.DataOut
-        io.Disk.Track := fdc.io.Disk.Track
-        io.Disk.Sector := fdc.io.Disk.Sector
-        io.Disk.Side := fdc.io.Disk.Side
-        io.Disk.Byte := fdc.io.Disk.Byte
+  io.PMA := vis69.io.PMA
+  io.PMWR_ := vis69.io.PMWR_
+  io.PMD_Out := clockedArea.CPU.io.DataOut
 
-    //Latches
-        // Frame interrupt: latch NTSC_PAL_FlipFlop at start of pre-display, but
-        // ONLY when the display is enabled. With DispOff (CMD bit 4) the real
-        // CDP1870 keeps PRE' (EF1) toggling — DOS's loader waits for an EF1 edge
-        // after blanking the display — but suppresses the frame interrupt.
-        when(vis70.io.PreDisplay_.rise() && vis70.io.DisplayOn){
-            INT_FF := NTSC_PAL_FlipFlop
-        }elsewhen((clockedArea.CPU.io.SC === 3 && clockedArea.CPU.io.TPA) && (!NTSC_PAL_FlipFlop)){
-            INT_FF := True
-        }
+  io.CMA := vis69.io.CMA(2 downto 0) ## io.PMD_In(6 downto 0)
+  io.CMWR_ := vis69.io.CMWR_
+  io.CMD_Out := clockedArea.CPU.io.DataOut
 
-    //Inputs
-        clockedArea.CPU.io.DataIn := DataInSel.mux( 
-            1 -> (io.PMD_In),
-            2 -> (io.CMD_In),
-            4 -> (kbd71.io.DataOut),
-            default -> (io.DataIn)
-        )
+  vis70.io.DataIn := clockedArea.CPU.io.DataOut
+  vis70.io.MRD := clockedArea.CPU.io.MRD
+  vis70.io.TPB := clockedArea.CPU.io.TPB
+  vis70.io.N3_ := vis69.io.N3_
+  vis70.io.CMSEL := vis69.io.CMSEL
+  vis70.io.CDB_in := io.CMD_In(5 downto 0)
+  vis70.io.CCB_in := io.PMD_In(7) ## io.CMD_In(7 downto 6)
 
-        kbd71.io.KeyCode := io.KBD_KeyCode
-        kbd71.io.Latch := io.KBD_Latch
-        kbd71.io.Repeat := io.KBD_Repeat
-    //Outputs
-        io.DataOut := clockedArea.CPU.io.DataOut
-        io.Addr16 := clockedArea.CPU.io.Addr16
-        io.MRD := clockedArea.CPU.io.MRD
-        io.MWR := clockedArea.CPU.io.MWR
-        io.N := clockedArea.CPU.io.N
-        io.HSync_ := vis70.io.HSync_
-        io.VSync_ := vis70.io.VSync_
-        io.Display_ := vis70.io.Display_
-        io.Pixel := vis70.io.Pixel
-        io.Color := vis70.io.Color
-        io.Sync := vis70.io.CompSync_
-        io.Burst := vis70.io.Burst
-        io.KBD_Ready := kbd71.io.Ready
-        io.Q := clockedArea.CPU.io.Q
+  kbd71.io.TPB := clockedArea.CPU.io.TPB
+  kbd71.io.MRD_ := clockedArea.CPU.io.MRD
+  kbd71.io.N3_ := vis69.io.N3_
 
-        io.CMA3_PMA10 := vis69.io.CMA3_PMA10
+  clockedArea.CPU.io.Wait_n := io.Wait
+  clockedArea.CPU.io.Clear_n := io.Start
+  clockedArea.CPU.io.EF_n := (fdc.io.EF4_) ## kbd71.io.DA_ ## (!NTSC_PAL_FlipFlop && kbd71.io.RPT_) ## (vis70.io.PreDisplay_)
+  clockedArea.CPU.io.Interrupt_n := INT_FF
 
-        io.Sound := vis69.io.Sound
+  fdc.io.Addr16 := clockedArea.CPU.io.Addr16
+  fdc.io.DataIn := clockedArea.CPU.io.DataOut
+  io.Card_DataOut := fdc.io.DataOut
+  fdc.io.MRD := clockedArea.CPU.io.MRD
+  fdc.io.MWR := clockedArea.CPU.io.MWR
+  fdc.io.TPB := clockedArea.CPU.io.TPB
+  fdc.io.N := clockedArea.CPU.io.N
+  fdc.io.Q := clockedArea.CPU.io.Q
+  io.ExtRom := fdc.io.ExtRom
+  io.FDCRom.Addr := fdc.io.FDCRom.Addr
+  fdc.io.FDCRom.DataIn := io.FDCRom.DataIn
+  io.Disk.ReadReq := fdc.io.Disk.ReadReq
+  fdc.io.Disk.DataIn := io.Disk.DataIn
+  fdc.io.Disk.DataInValid := io.Disk.DataInValid
+  io.Disk.WriteReq := fdc.io.Disk.WriteReq
+  io.Disk.DataOut := fdc.io.Disk.DataOut
+  io.Disk.Track := fdc.io.Disk.Track
+  io.Disk.Sector := fdc.io.Disk.Sector
+  io.Disk.Side := fdc.io.Disk.Side
+  io.Disk.Byte := fdc.io.Disk.Byte
+
+  // Latches
+  // Frame interrupt: latch NTSC_PAL_FlipFlop at start of pre-display, but
+  // ONLY when the display is enabled. With DispOff (CMD bit 4) the real
+  // CDP1870 keeps PRE' (EF1) toggling — DOS's loader waits for an EF1 edge
+  // after blanking the display — but suppresses the frame interrupt.
+  when(vis70.io.PreDisplay_.rise() && vis70.io.DisplayOn) {
+    INT_FF := NTSC_PAL_FlipFlop
+  } elsewhen ((clockedArea.CPU.io.SC === 3 && clockedArea.CPU.io.TPA) && (!NTSC_PAL_FlipFlop)) {
+    INT_FF := True
+  }
+
+  // Inputs
+  clockedArea.CPU.io.DataIn := DataInSel.mux(
+    1 -> (io.PMD_In),
+    2 -> (io.CMD_In),
+    4 -> (kbd71.io.DataOut),
+    default -> (io.DataIn)
+  )
+
+  kbd71.io.KeyCode := io.KBD_KeyCode
+  kbd71.io.Latch := io.KBD_Latch
+  kbd71.io.Repeat := io.KBD_Repeat
+  // Outputs
+  io.DataOut := clockedArea.CPU.io.DataOut
+  io.Addr16 := clockedArea.CPU.io.Addr16
+  io.MRD := clockedArea.CPU.io.MRD
+  io.MWR := clockedArea.CPU.io.MWR
+  io.N := clockedArea.CPU.io.N
+  io.HSync_ := vis70.io.HSync_
+  io.VSync_ := vis70.io.VSync_
+  io.Display_ := vis70.io.Display_
+  io.Pixel := vis70.io.Pixel
+  io.Color := vis70.io.Color
+  io.Sync := vis70.io.CompSync_
+  io.Burst := vis70.io.Burst
+  io.KBD_Ready := kbd71.io.Ready
+  io.Q := clockedArea.CPU.io.Q
+
+  io.CMA3_PMA10 := vis69.io.CMA3_PMA10
+
+  io.Sound := vis69.io.Sound
 }
 
 object comx35_sim {
-    def main(args: Array[String]) {
-        SimConfig.withWave.compile{
-            val dut = new comx35_test()
-            dut.clockedArea.CPU.OP.simPublic();
-            dut.clockedArea.CPU.io.Addr16.simPublic();
-            dut.clockedArea.CPU.io.MWR.simPublic();
-            dut.clockedArea.CPU.io.MRD.simPublic();
-            dut.clockedArea.CPU.P.simPublic()
-            dut.clockedArea.CPU.D.simPublic()
-            dut.clockedArea.CPU.R(0).simPublic()
-            dut.clockedArea.CPU.R(1).simPublic()
-            dut.clockedArea.CPU.R(2).simPublic()
-            dut.clockedArea.CPU.R(3).simPublic()
-            dut.clockedArea.CPU.R(4).simPublic()
-            dut.clockedArea.CPU.R(5).simPublic()
-            dut.clockedArea.CPU.R(6).simPublic()
-            dut.clockedArea.CPU.R(7).simPublic()
-            dut.clockedArea.CPU.R(8).simPublic()
-            dut.clockedArea.CPU.R(9).simPublic()
-            dut.clockedArea.CPU.R(10).simPublic()
-            dut.clockedArea.CPU.R(11).simPublic()
-            dut.clockedArea.CPU.R(12).simPublic()
-            dut.clockedArea.CPU.R(13).simPublic()
-            dut.clockedArea.CPU.R(14).simPublic()
-            dut.clockedArea.CPU.R(15).simPublic()
-            dut
-        }.doSim { dut =>
-            //Fork a process to generate the reset and the clock on the dut
-            dut.clockDomain.forkStimulus(period = 10)
+  def main(args: Array[String]) {
+    SimConfig.withWave
+      .compile {
+        val dut = new comx35_test()
+        dut.clockedArea.CPU.OP.simPublic();
+        dut.clockedArea.CPU.io.Addr16.simPublic();
+        dut.clockedArea.CPU.io.MWR.simPublic();
+        dut.clockedArea.CPU.io.MRD.simPublic();
+        dut.clockedArea.CPU.P.simPublic()
+        dut.clockedArea.CPU.D.simPublic()
+        dut.clockedArea.CPU.R(0).simPublic()
+        dut.clockedArea.CPU.R(1).simPublic()
+        dut.clockedArea.CPU.R(2).simPublic()
+        dut.clockedArea.CPU.R(3).simPublic()
+        dut.clockedArea.CPU.R(4).simPublic()
+        dut.clockedArea.CPU.R(5).simPublic()
+        dut.clockedArea.CPU.R(6).simPublic()
+        dut.clockedArea.CPU.R(7).simPublic()
+        dut.clockedArea.CPU.R(8).simPublic()
+        dut.clockedArea.CPU.R(9).simPublic()
+        dut.clockedArea.CPU.R(10).simPublic()
+        dut.clockedArea.CPU.R(11).simPublic()
+        dut.clockedArea.CPU.R(12).simPublic()
+        dut.clockedArea.CPU.R(13).simPublic()
+        dut.clockedArea.CPU.R(14).simPublic()
+        dut.clockedArea.CPU.R(15).simPublic()
+        dut
+      }
+      .doSim { dut =>
+        // Fork a process to generate the reset and the clock on the dut
+        dut.clockDomain.forkStimulus(period = 10)
 
-            dut.io.Start #= false
+        dut.io.Start #= false
 
-            dut.clockDomain.waitRisingEdge()
+        dut.clockDomain.waitRisingEdge()
 
-            dut.io.Start #= true
+        dut.io.Start #= true
 
-            val ram = new Memory(0xBFFF)
-            ram.loadBin(0x0000, "data/comx35.1.3.bin")
-            
-            val pram = new Memory(0x3FF)
-            val cram = new Memory(0x3FF)
-            //val trace = new TraceEmma("verification\\out.log")
+        val ram = new Memory(0xbfff)
+        ram.loadBin(0x0000, "data/comx35.1.3.bin")
 
-            var c = 0;
-            // val loop = new Breaks;
-            // loop.breakable {
-            //     while (true) {
-            //         dut.clockDomain.waitRisingEdge()
+        val pram = new Memory(0x3ff)
+        val cram = new Memory(0x3ff)
+        // val trace = new TraceEmma("verification\\out.log")
 
-            //         if (dut.io.MRD.toBoolean == false && dut.io.Addr16.toInt < 0xC000) {
-            //             dut.io.DataIn #= ram.read(dut.io.Addr16.toInt)
-            //         } else {
-            //             dut.io.DataIn #= 0x00
-            //         }
+        var c = 0;
+        // val loop = new Breaks;
+        // loop.breakable {
+        //     while (true) {
+        //         dut.clockDomain.waitRisingEdge()
 
-            //         if (dut.io.MWR.toBoolean == false && dut.io.Addr16.toInt > 0x3fff && dut.io.Addr16.toInt < 0xC000) {
-            //             ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
-            //         }
+        //         if (dut.io.MRD.toBoolean == false && dut.io.Addr16.toInt < 0xC000) {
+        //             dut.io.DataIn #= ram.read(dut.io.Addr16.toInt)
+        //         } else {
+        //             dut.io.DataIn #= 0x00
+        //         }
 
-            //         if(dut.io.PMWR_.toBoolean == false){
-            //             pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
-            //         }
-                    
-            //         if(dut.io.CMWR_.toBoolean == false){
-            //             cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
-            //         }
-                    
-            //         dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
-            //         dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
+        //         if (dut.io.MWR.toBoolean == false && dut.io.Addr16.toInt > 0x3fff && dut.io.Addr16.toInt < 0xC000) {
+        //             ram.write(dut.io.Addr16.toInt, dut.io.DataOut.toInt.toByte)
+        //         }
 
-            //         if(c == 5000){
-            //             dut.io.KBD_KeyCode #= 0x80
-            //             dut.io.KBD_Latch #= true
-            //         }else{
-            //             dut.io.KBD_KeyCode #= 0x00
-            //             dut.io.KBD_Latch #= false
-            //         }
+        //         if(dut.io.PMWR_.toBoolean == false){
+        //             pram.write(dut.io.PMA.toInt, dut.io.PMD_Out.toInt.toByte)
+        //         }
 
-            //         c += 1
-            //         if(c > 999999){
-            //             loop.break;
-            //         }
-            //     }
-            // }
-        }
-    }
+        //         if(dut.io.CMWR_.toBoolean == false){
+        //             cram.write(dut.io.CMA.toInt, dut.io.CMD_Out.toInt.toByte)
+        //         }
+
+        //         dut.io.PMD_In #= pram.read(dut.io.PMA.toInt)
+        //         dut.io.CMD_In #= cram.read(dut.io.CMA.toInt)
+
+        //         if(c == 5000){
+        //             dut.io.KBD_KeyCode #= 0x80
+        //             dut.io.KBD_Latch #= true
+        //         }else{
+        //             dut.io.KBD_KeyCode #= 0x00
+        //             dut.io.KBD_Latch #= false
+        //         }
+
+        //         c += 1
+        //         if(c > 999999){
+        //             loop.break;
+        //         }
+        //     }
+        // }
+      }
+  }
 }
 
 //Define a custom SpinalHDL configuration with synchronous reset instead of the default asynchronous one. This configuration can be reused everywhere
-object ComxSpinalConfig extends SpinalConfig(
-    targetDirectory = "./fcomx-35_SDL/rtl",
-    oneFilePerComponent = false,
-    defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
-)
+object ComxSpinalConfig
+    extends SpinalConfig(
+      targetDirectory = "./fcomx-35_SDL/rtl",
+      oneFilePerComponent = false,
+      defaultConfigForClockDomains = ClockDomainConfig(resetKind = SYNC)
+    )
 
 //Generate the MyTopLevel's Verilog using the above custom configuration.
 object ComxGen {
-    def main(args: Array[String]) {
+  def main(args: Array[String]) {
 
-        ComxSpinalConfig.generateVerilog({
-            val dut = new comx35_test();
-            dut.clockedArea.CPU.OP.simPublic();
-            dut.clockedArea.CPU.D.simPublic()
-            dut.clockedArea.CPU.R(0).simPublic()
-            dut.clockedArea.CPU.R(1).simPublic()
-            dut.clockedArea.CPU.R(2).simPublic()
-            dut.clockedArea.CPU.R(3).simPublic()
-            dut.clockedArea.CPU.R(4).simPublic()
-            dut.clockedArea.CPU.R(5).simPublic()
-            dut.clockedArea.CPU.R(6).simPublic()
-            dut.clockedArea.CPU.R(7).simPublic()
-            dut.clockedArea.CPU.R(8).simPublic()
-            dut.clockedArea.CPU.R(9).simPublic()
-            dut.clockedArea.CPU.R(10).simPublic()
-            dut.clockedArea.CPU.R(11).simPublic()
-            dut.clockedArea.CPU.R(12).simPublic()
-            dut.clockedArea.CPU.R(13).simPublic()
-            dut.clockedArea.CPU.R(14).simPublic()
-            dut.clockedArea.CPU.R(15).simPublic()
-            dut
-        }).printPruned
-    }
+    ComxSpinalConfig
+      .generateVerilog({
+        val dut = new comx35_test();
+        dut.clockedArea.CPU.OP.simPublic();
+        dut.clockedArea.CPU.D.simPublic()
+        dut.clockedArea.CPU.R(0).simPublic()
+        dut.clockedArea.CPU.R(1).simPublic()
+        dut.clockedArea.CPU.R(2).simPublic()
+        dut.clockedArea.CPU.R(3).simPublic()
+        dut.clockedArea.CPU.R(4).simPublic()
+        dut.clockedArea.CPU.R(5).simPublic()
+        dut.clockedArea.CPU.R(6).simPublic()
+        dut.clockedArea.CPU.R(7).simPublic()
+        dut.clockedArea.CPU.R(8).simPublic()
+        dut.clockedArea.CPU.R(9).simPublic()
+        dut.clockedArea.CPU.R(10).simPublic()
+        dut.clockedArea.CPU.R(11).simPublic()
+        dut.clockedArea.CPU.R(12).simPublic()
+        dut.clockedArea.CPU.R(13).simPublic()
+        dut.clockedArea.CPU.R(14).simPublic()
+        dut.clockedArea.CPU.R(15).simPublic()
+        dut
+      })
+      .printPruned
+  }
 }
