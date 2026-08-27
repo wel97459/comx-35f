@@ -8,6 +8,7 @@
 !main.cpp
 !sim.cpp
 !sim_fast.cpp
+!sim_fast.h
 !sim.h
 !sim_tv.cpp
 !sim_tv.h
