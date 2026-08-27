@@ -93,7 +93,7 @@ char tmpstr[64];
 //char basicStr[]="\r5 i=0\r10 cpos(3,0)\r20 pr i;\r30 i=i+1\r40 goto 10\rrun\r";
 //char basicStr[]="\rcaall(@4401)\r";
 //char basicStr[]="\r\r\rpr peek(@870d)\rpr peek(@870e)\r";
-char basicStr[]="\rdos run,\"f&m diskmonitor\"\r";
+char basicStr[]="\rdos run,\"c\"\r";
 
 //char basicStr[]="\rshhape(20, \"00000000dfffffdf00\")\r";
 char *keyInput = &basicStr[0];
@@ -354,18 +354,20 @@ void sim_run(){
     // The FDC card requests a byte from the host during a read sector/track
     // and offers one during a write. Address it within the raw sector image
     // using the track/sector/side/byte the card exposes.
-    if (diskLoaded && comx->io_DiskReadReq) {
-        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
-                                comx->io_DiskSector, comx->io_DiskByte);
-        comx->io_DiskDataIn = (off < DISK_SIZE) ? diskImage[off] : 0xFF;
-        if(comx->io_DiskByte == 0) printf(" Read\n");
+    if (diskLoaded && comx->io_Disk_ReadReq) {
+        Uint32 off = diskOffset(comx->io_Disk_Track, comx->io_Disk_Side,
+                                comx->io_Disk_Sector, comx->io_Disk_Byte);
+        comx->io_Disk_DataIn = (off < DISK_SIZE) ? diskImage[off] : 0xFF;
+        //comx->io_Disk_DataInValid = true;
+        if(comx->io_Disk_Byte == 0) printf(" Read\n");
         diskReadCount++;
     }
-    if (diskLoaded && comx->io_DiskWriteReq) {
-        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
-                                comx->io_DiskSector, comx->io_DiskByte);
-        if (off < DISK_SIZE) diskImage[off] = comx->io_DiskDataOut;
-        if(comx->io_DiskByte == 0) printf(" Write\n");
+    
+    if (diskLoaded && comx->io_Disk_WriteReq) {
+        Uint32 off = diskOffset(comx->io_Disk_Track, comx->io_Disk_Side,
+                                comx->io_Disk_Sector, comx->io_Disk_Byte);
+        if (off < DISK_SIZE) diskImage[off] = comx->io_Disk_DataOut;
+        if(comx->io_Disk_Byte == 0) printf(" Write\n");
         diskWriteCount++;
     }
 

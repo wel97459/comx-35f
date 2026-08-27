@@ -24,18 +24,21 @@ class FDC_Card extends Component
             val DataIn = in Bits(8 bit)
             val Addr = out Bits(13 bit)
         }
-        // Disk byte interface — the host (simulation) supplies one byte on a read
-        // request, and accepts one byte on a write request.
-        val DiskReadReq  = out Bool()     // FDC needs a byte (read sector/track)
-        val DiskDataIn   = in Bits(8 bit) // byte supplied by the host
-        val DiskWriteReq = out Bool()     // FDC has a byte to store
-        val DiskDataOut  = out Bits(8 bit)// byte to store
-        // Disk addressing (valid while DiskReadReq/DiskWriteReq is asserted) so the
-        // host can map the byte to its offset in the raw sector image.
-        val DiskTrack  = out Bits(8 bits) // current track
-        val DiskSector = out Bits(8 bits) // current sector
-        val DiskSide   = out Bool()       // current head/side (select-register bit 5)
-        val DiskByte   = out UInt(7 bits) // byte index within the sector
+        val Disk = new Bundle {
+            // Disk byte interface — the host (simulation) supplies one byte on a read
+            // request, and accepts one byte on a write request.
+            val ReadReq = out Bool()        // FDC needs a byte (read sector/track)
+            val DataInValid = in Bool()     // host has supplied a byte
+            val DataIn = in Bits(8 bit)     // byte supplied by the host
+            val WriteReq = out Bool()       // FDC has a byte to store
+            val DataOut = out Bits(8 bit)   // byte to store
+            // Disk addressing (valid while DiskReadReq/DiskWriteReq is asserted) so the
+            // host can map the byte to its offset in the raw sector image.
+            val Track = out Bits(8 bits)    // current track
+            val Sector = out Bits(8 bits)   // current sector
+            val Side = out Bool()           // current head/side (select-register bit 5)
+            val Byte = out UInt(7 bits)     // byte index within the sector
+        }
     }
 
     // ---- register select latch (Q=1 write) ----
@@ -155,13 +158,13 @@ class FDC_Card extends Component
     when(cmdWrite)  { FDC_INTRQ := False }
 
     // ---- disk interface defaults ----
-    io.DiskReadReq  := False
-    io.DiskWriteReq := False
-    io.DiskDataOut  := FDC_Data
-    io.DiskTrack    := FDC_Track
-    io.DiskSector   := FDC_Sector
-    io.DiskSide     := FDC_Side
-    io.DiskByte     := ByteCount
+    io.Disk.ReadReq  := False
+    io.Disk.WriteReq := False
+    io.Disk.DataOut  := FDC_Data
+    io.Disk.Track    := FDC_Track
+    io.Disk.Sector   := FDC_Sector
+    io.Disk.Side     := FDC_Side
+    io.Disk.Byte     := ByteCount
 
     // ---- FDC command state machine ----
     val fsm = new StateMachine
@@ -250,9 +253,11 @@ class FDC_Card extends Component
         val ReadSector_Req: State = new State {
             whenIsActive {
                 FDC_Status(0) := True    // Busy
-                io.DiskReadReq := True   // request a byte from the host
-                FDC_Data := io.DiskDataIn
-                goto(ReadSector_DRQ)
+                io.Disk.ReadReq := True   // request a byte from the host
+                when(io.Disk.DataInValid) {
+                    FDC_Data := io.Disk.DataIn
+                    goto(ReadSector_DRQ)
+                }
             }
         }
 
@@ -308,8 +313,8 @@ class FDC_Card extends Component
         val WriteSector_Send: State = new State {
             whenIsActive {
                 FDC_Status(0) := True
-                io.DiskWriteReq := True
-                io.DiskDataOut := FDC_Data
+                io.Disk.WriteReq := True
+                io.Disk.DataOut := FDC_Data
                 ByteCount := ByteCount + 1
                 when(ByteCount === 127) {
                     goto(WriteSector_Done)

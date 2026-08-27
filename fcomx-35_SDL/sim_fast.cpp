@@ -498,18 +498,18 @@ void fast_run() {
     }
 
     // --- FDC disk byte interface (serve/capture one byte) ---
-    if (comx->io_DiskReadReq) {
-        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
-                                comx->io_DiskSector, comx->io_DiskByte);
-        comx->io_DiskDataIn = (off < DISK_SIZE) ? diskImage[off] : 0;
+    if (comx->io_Disk_ReadReq) {
+        Uint32 off = diskOffset(comx->io_Disk_Track, comx->io_Disk_Side,
+                                comx->io_Disk_Sector, comx->io_Disk_Byte);
+        comx->io_Disk_DataIn = (off < DISK_SIZE) ? diskImage[off] : 0;
         diskReadCount++;
     } else {
-        comx->io_DiskDataIn = 0;
+        comx->io_Disk_DataIn = 0;
     }
-    if (comx->io_DiskWriteReq) {
-        Uint32 off = diskOffset(comx->io_DiskTrack, comx->io_DiskSide,
-                                comx->io_DiskSector, comx->io_DiskByte);
-        if (off < DISK_SIZE) diskImage[off] = comx->io_DiskDataOut;
+    if (comx->io_Disk_WriteReq) {
+        Uint32 off = diskOffset(comx->io_Disk_Track, comx->io_Disk_Side,
+                                comx->io_Disk_Sector, comx->io_Disk_Byte);
+        if (off < DISK_SIZE) diskImage[off] = comx->io_Disk_DataOut;
         diskWriteCount++;
     }
 

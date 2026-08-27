@@ -46,15 +46,19 @@ class comx35_fast() extends Component {
             val DataIn = in Bits(8 bit)
             val Addr = out Bits(13 bit)
         }
+
         // FDC disk byte interface (served by software)
-        val DiskReadReq = out Bool()
-        val DiskDataIn = in Bits(8 bits)
-        val DiskWriteReq = out Bool()
-        val DiskDataOut = out Bits(8 bits)
-        val DiskTrack = out Bits(8 bits)
-        val DiskSector = out Bits(8 bits)
-        val DiskSide = out Bool()
-        val DiskByte = out UInt(7 bits)
+        val Disk = new Bundle {
+            val ReadReq = out Bool()
+            val DataIn = in Bits(8 bits)
+            val DataInValid = in Bool()
+            val WriteReq = out Bool()
+            val DataOut = out Bits(8 bits)
+            val Track = out Bits(8 bits)
+            val Sector = out Bits(8 bits)
+            val Side = out Bool()
+            val Byte = out UInt(7 bits)
+        }
 
         // Software-driven timing (replaces the VIS)
         val PreDisplay_ = in Bool()
@@ -92,14 +96,15 @@ class comx35_fast() extends Component {
     io.ExtRom := fdc.io.ExtRom
     io.FDCRom.Addr := fdc.io.FDCRom.Addr
     fdc.io.FDCRom.DataIn := io.FDCRom.DataIn
-    io.DiskReadReq := fdc.io.DiskReadReq
-    fdc.io.DiskDataIn := io.DiskDataIn
-    io.DiskWriteReq := fdc.io.DiskWriteReq
-    io.DiskDataOut := fdc.io.DiskDataOut
-    io.DiskTrack := fdc.io.DiskTrack
-    io.DiskSector := fdc.io.DiskSector
-    io.DiskSide := fdc.io.DiskSide
-    io.DiskByte := fdc.io.DiskByte
+    io.Disk.ReadReq := fdc.io.Disk.ReadReq
+    fdc.io.Disk.DataIn := io.Disk.DataIn
+    fdc.io.Disk.DataInValid := io.Disk.DataInValid
+    io.Disk.WriteReq := fdc.io.Disk.WriteReq
+    io.Disk.DataOut := fdc.io.Disk.DataOut
+    io.Disk.Track := fdc.io.Disk.Track
+    io.Disk.Sector := fdc.io.Disk.Sector
+    io.Disk.Side := fdc.io.Disk.Side
+    io.Disk.Byte := fdc.io.Disk.Byte
 
     // CPU control
     CPU.io.Wait_n := io.Wait
