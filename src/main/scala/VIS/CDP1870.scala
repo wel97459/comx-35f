@@ -69,7 +69,7 @@ class CDP1870 extends Component{
         val HSync = HorizontalCounter >= 56 && HorizontalCounter <= 59
         val Burst = HorizontalCounter >= 1 && HorizontalCounter <= 4
 
-        val HorizontalBlanking = HorizontalCounter <= 5 || HorizontalCounter >= 54
+        val HorizontalBlanking = HorizontalCounter <= 5 || HorizontalCounter >= 53
         val VerticalBlanking = VerticalCounter <= 10 || VerticalCounter >= 252
 
         val HDisplay = HorizontalCounter >= 9 && HorizontalCounter < 49
@@ -90,6 +90,7 @@ class CDP1870 extends Component{
             3 -> (Color(2) ## Color(0) ## Color(1))
         )
 
+        val DisplayArea = VDisplay && !HorizontalBlanking && !DispOff
     //Latches
 
         when(TimingCounter === 11){
@@ -122,7 +123,7 @@ class CDP1870 extends Component{
 
     //Outputs
     io.Pixel := PixelShifter(5)
-    io.Color := PixelShifter(5) ? ColorOut | BKG
+    io.Color := PixelShifter(5) ? ColorOut | (DisplayArea ? BKG | 0)
     io.Burst := Burst & !VerticalBlanking
     io.CompSync_ := !(HSync ^ VSync)
     io.HSync_ := !HSync
