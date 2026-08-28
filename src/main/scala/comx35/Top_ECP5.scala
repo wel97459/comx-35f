@@ -47,17 +47,6 @@ class Top_ECP5 extends Component {
     val ps2_clk = in Bool ()
     val ps2_data = in Bool ()
 
-    val floppy = new Bundle {
-      val motor_on = out Bool ()
-      val drive_0 = out Bool ()
-      val drive_1 = out Bool ()
-      val direction = out Bool ()
-      val step = out Bool ()
-      val write_data = out Bool ()
-      val write_gate = out Bool ()
-      val head_select = out Bool ()
-    }
-
   }
   noIoPrefix()
 
@@ -171,10 +160,6 @@ class Top_ECP5 extends Component {
         // comx35.io.KBD_Repeat := area40kHz.kbd.io.key_Held
         comx35.io.KBD_Repeat := False
 
-        comx35.io.Disk.DataIn := 0
-        comx35.io.Disk.Valid := False
-        comx35.io.Disk.Ready := False
-
         val keyHit = Reg(Bool()) init (False)
         when(comx35.io.KBD_Ready && comx35.io.Display_.rise()) {
           when(pro.io.keys.valid) {
@@ -205,6 +190,21 @@ class Top_ECP5 extends Component {
         rom_fdc.io.wea := 0
         rom_fdc.io.ena := True
         comx35.io.FDCRom.DataIn := rom_fdc.io.douta
+
+// FDC interface
+        pro.io.Floppy.Track := comx35.io.Disk.Track
+        pro.io.Floppy.Sector := comx35.io.Disk.Sector
+        pro.io.Floppy.Side := comx35.io.Disk.Side
+        pro.io.Floppy.ReadReq := comx35.io.Disk.ReadReq && comx35.io.Disk.Byte === 0
+        pro.io.Floppy.WriteReq := comx35.io.Disk.WriteReq && comx35.io.Disk.Byte === 0
+        pro.io.Floppy.SeekReq := comx35.io.Disk.SeekReq
+
+        pro.io.Floppy.DataOut.payload := comx35.io.Disk.DataOut
+        pro.io.Floppy.DataOut.valid := comx35.io.Disk.WriteReq && comx35.io.Disk.Byte > 0
+
+        comx35.io.Disk.Valid := pro.io.Floppy.DataIn.valid
+        comx35.io.Disk.DataIn := pro.io.Floppy.DataIn.payload
+        pro.io.Floppy.DataIn.ready := comx35.io.Disk.ReadReq && comx35.io.Disk.Byte > 0
 
         io.sync := comx35.io.Sync
 
@@ -257,10 +257,6 @@ class Top_ECP5 extends Component {
           wea := comx35.io.MWR.rise()
         }
 
-        when(comx35.io.Addr16.asUInt === 0xc000 && comx35.io.MWR.rise()) {
-          Floppy := comx35.io.DataOut
-        }
-
         when(!Tape_sw.value(0)) {
           Tape_state := False
         } elsewhen (Tape_sw.value(0) && Tape_stop) {
@@ -270,14 +266,6 @@ class Top_ECP5 extends Component {
         }
 
         io.tape_motor := Tape_sw.value(0) && !Tape_state
-        io.floppy.motor_on := !Floppy(0)
-        io.floppy.drive_0 := !Floppy(1)
-        io.floppy.drive_1 := !Floppy(2)
-        io.floppy.direction := !Floppy(3)
-        io.floppy.step := !Floppy(4)
-        io.floppy.write_data := True
-        io.floppy.write_gate := True
-        io.floppy.head_select := !Floppy(7)
       }
     }
 

@@ -32,7 +32,6 @@ class FDC_Card extends Component {
       val DataIn = in Bits (8 bit) // byte supplied by the host
       val WriteReq = out Bool () // FDC has a byte to store
       val DataOut = out Bits (8 bit) // byte to store
-      val Ready = in Bool () // host can accept a byte
       // Disk addressing (valid while DiskReadReq/DiskWriteReq is asserted) so the
       // host can map the byte to its offset in the raw sector image.
       val Track = out Bits (8 bits) // current track
@@ -172,9 +171,7 @@ class FDC_Card extends Component {
   io.Disk.Side := FDC_Side
   io.Disk.Byte := ByteCount
   // restore/seek commands request a seek
-  io.Disk.SeekReq := ((FDC_Command(7 downto 4) === 0x0) || (FDC_Command(
-    7 downto 4
-  ) === 0x1)).rise()
+  io.Disk.SeekReq := False
   // ---- FDC command state machine ----
   val fsm = new StateMachine {
     val Wait4CMD: State = new State with EntryPoint {
@@ -219,6 +216,7 @@ class FDC_Card extends Component {
         FDC_Track := 0
         FDC_INTRQ := True
         FDC_Status := 0x04 // endCommand(4): TRACK0 flag only
+        io.Disk.SeekReq := True
         goto(Wait4CMD)
       }
     }
@@ -229,6 +227,7 @@ class FDC_Card extends Component {
         FDC_Track := FDC_Data
         FDC_INTRQ := True
         FDC_Status := (FDC_Data === 0) ? B"8'x04" | B"8'x00"
+        io.Disk.SeekReq := True
         goto(Wait4CMD)
       }
     }
@@ -309,7 +308,7 @@ class FDC_Card extends Component {
     val WriteSector_DRQ: State = new State {
       whenIsActive {
         FDC_Status(0) := True // Busy
-        FDC_Status(1) := io.Disk.Ready // DRQ (ask for first byte)
+        FDC_Status(1) := True // DRQ (ask for first byte)
         when(datWriteRise) {
           FDC_Status(1) := False // CPU supplied a byte
           goto(WriteSector_Send)

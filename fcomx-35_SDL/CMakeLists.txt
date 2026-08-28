@@ -23,8 +23,8 @@ SET(CMAKE_BUILD_TYPE Relese)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 project(sim)
-#execute_process(COMMAND sbt "runMain Spinal1802.CDP1802Gen" WORKING_DIRECTORY ../../../)
-#execute_process(WORKING_DIRECTORY ../../../ COMMAND cp "./DisplayTest.v_toplevel_tft_initParamsRom.bin" "./src/testing/SDL_DisplayTest/")
+execute_process(COMMAND sbt "runMain comx35.ComxGen" WORKING_DIRECTORY ../)
+execute_process(COMMAND sbt "runMain comx35.ComxFastGen" WORKING_DIRECTORY ../)
 
 find_package(verilator HINTS $ENV{VERILATOR_ROOT})
 find_package(SDL2 REQUIRED)

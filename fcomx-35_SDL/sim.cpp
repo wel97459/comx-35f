@@ -459,7 +459,7 @@ void sim_run()
     comx->io_Wait = true;
     comx->io_Tape_in = true;
     comx->io_FDCRom_DataIn = fdc[comx->io_FDCRom_Addr];
-    comx->io_FDCRom_Ready = true;
+    comx->io_Disk_Ready = true;
     // --- FDC disk byte interface (mirrors sim_fast.cpp) ---
     // The FDC card requests a byte from the host during a read sector/track
     // and offers one during a write. Address it within the raw sector image
@@ -469,7 +469,7 @@ void sim_run()
         Uint32 off = diskOffset(comx->io_Disk_Track, comx->io_Disk_Side,
                                 comx->io_Disk_Sector, comx->io_Disk_Byte);
         comx->io_Disk_DataIn = (off < DISK_SIZE) ? diskImage[off] : 0xFF;
-        comx->io_Disk_DataInValid = true;
+        comx->io_Disk_Valid = true;
         if (comx->io_Disk_Byte == 0)
             printf(" Read\n");
         diskReadCount++;

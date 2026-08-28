@@ -100,7 +100,6 @@ class comx35_fast() extends Component {
   io.Disk.ReadReq := fdc.io.Disk.ReadReq
   fdc.io.Disk.DataIn := io.Disk.DataIn
   fdc.io.Disk.Valid := io.Disk.Valid
-  fdc.io.Disk.Ready := io.Disk.Ready
   io.Disk.WriteReq := fdc.io.Disk.WriteReq
   io.Disk.DataOut := fdc.io.Disk.DataOut
   io.Disk.Track := fdc.io.Disk.Track

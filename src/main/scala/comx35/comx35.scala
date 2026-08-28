@@ -85,8 +85,8 @@ class comx35_test() extends Component {
       val DataIn = in Bits (8 bits)
       val Valid = in Bool ()
       val WriteReq = out Bool ()
+      val SeekReq = out Bool ()
       val DataOut = out Bits (8 bits)
-      val Ready = in Bool ()
       val Track = out Bits (8 bits)
       val Sector = out Bits (8 bits)
       val Side = out Bool ()
@@ -169,8 +169,8 @@ class comx35_test() extends Component {
   io.Disk.ReadReq := fdc.io.Disk.ReadReq
   fdc.io.Disk.DataIn := io.Disk.DataIn
   fdc.io.Disk.Valid := io.Disk.Valid
-  fdc.io.Disk.Ready := io.Disk.Ready
   io.Disk.WriteReq := fdc.io.Disk.WriteReq
+  io.Disk.SeekReq := fdc.io.Disk.SeekReq
   io.Disk.DataOut := fdc.io.Disk.DataOut
   io.Disk.Track := fdc.io.Disk.Track
   io.Disk.Sector := fdc.io.Disk.Sector
