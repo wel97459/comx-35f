@@ -259,6 +259,7 @@ class FDC_Card extends Component {
     val ReadSector_Req: State = new State {
       whenIsActive {
         FDC_Status(0) := True // Busy
+        FDC_Status(1) := False
         io.Disk.ReadReq := True // request a byte from the host
         when(io.Disk.Valid) {
           FDC_Data := io.Disk.DataIn
